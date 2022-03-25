@@ -110,7 +110,7 @@ I47.2 , ,Ventricular tachycardia ,E
 I49.0 , ,Ventricular fibrillation and flutter ,U 
 I60 ,10,Subarachanoid hemorrhage ,E 
 I61 ,9,Intracerebral hemorrhage ,E 
-I62 ,3,Other nontraumatic intracranial haemorrhage , 
+I62 ,3,Other nontraumatic intracranial haemorrhage ,E 
 I80 ,6,Phlebitis and thrombophlebitis ,E 
 I85.0 , ,Esophageal varices with bleeding ,U 
 I95 ,5,Hypotension ,E 
@@ -294,7 +294,6 @@ Y52 ,10,"Drugs, medicaments and biological substances causing adverse effects in
 Y53 ,10,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Agents primarily affecting the gastrointestinal system ",A1 
 Y54 ,10,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Agents primarily affecting water-balance and mineral and uric acid metabolism ",A1 
 Y55 ,8,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Agents ",A1 
-,,primarily acting on smooth and skeletal muscles and the respiratory system ,
 Y55.1 , ,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Agents primarily acting on smooth and skeletal muscles and the respiratory system, Skeletal muscle relaxants [neuromuscular blocking agents] ",A1 
 Y56 ,10,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Topical agents primarily affecting skin and mucous membrane and ophthalmological, otorhinolaryngological and dental drugs ",A1 
 Y57 ,10,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use -Other and unspecified drugs and medicaments ",A1 
