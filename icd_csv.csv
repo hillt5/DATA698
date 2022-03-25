@@ -1,13 +1,11 @@
-,,,
 Code ,No. subcodes ,Description ,Causality Rating 
-,, ,
 A04.7 , ,Enterocolitis due to Clostridium difficile ,C 
 A80.0 , ,"Acute paralytic poliomyelitis, vaccine-associated ",V 
 D50.0 , ,Iron deficiency anemia secondary to blood loss (chronic) ,E 
 D52.1 , ,Drug-induced folate deficiency anemia ,A1 
 D59.0 , ,Drug-induced autoimmune hemolytic anemia ,A1 
 D59.2 , ,Drug-induced non autoimmune hemolytic anemia ,A1 
-D61.1[1] , ,Drug-induced aplastic anaemia  ,A1 
+D61.1 , ,Drug-induced aplastic anaemia  ,A1 
 D61.9 , ,"Aplastic Anemia, unspecified ",E 
 D62 ,1,Acute post-hemorrhagic anemia ,D 
 D64.2 , ,Secondary sideroblastic anaemia due to drugs and toxins ,A2 
@@ -17,11 +15,10 @@ D68.4 , ,Acquired coagulation factor deficiency ,E
 D68.8 , ,Other specified coagulation defects ,E 
 D68.9 , ,"Coagulation defect, unspecified ",E 
 D69 ,9,Purpura and other haemorrhagic conditions ,C 
-D69.5[1] , ,Secondary thrombocytopenia ,C 
+D69.5 , ,Secondary thrombocytopenia ,C 
 D69.6 , ,"Thrombocytopenia, unspecified ",D 
 D69.9 , ,"Hemorrhagic condition, unspecified ",E 
-D70[2] ,1,Agranulocytosis ,D 
-,,,
+D70 ,1,Agranulocytosis ,D 
 E03.2 , ,Hypothyroidism due to medicaments and other exogenous substances ,A2 
 E06.4 , ,Drug-induced thyroiditis ,A1 
 E15 ,1,Nondiabetic hypoglycemic coma ,C 
@@ -29,7 +26,7 @@ E16.0 , ,Drug-induced hypoglycaemia without coma ,A1
 E23.1 , ,Drug-induced hypopituitarism ,A1 
 E24.2 , ,Drug-induced Cushing syndrome ,A1 
 E27.3 , ,Drug-induced adrenocortical insufficiency ,A1 
-E66.1[3] , ,Drug-induced obesity ,A1 
+E66.1 , ,Drug-induced obesity ,A1 
 E86 ,1,Volume depletion ,E 
 E87 ,9,"Other disorders of fluid, electrolyte and acid-base balance",E 
 E87.0 , ,Hyperosmolality and hypernatremia ,E 
@@ -43,7 +40,7 @@ E87.7 , ,Fluid overload ,E
 E87.8 , ,"Other disorders of electrolyte and fluid balance, not elsewhere classified ",E 
 F05 ,4,"Delirium, not induced by alcohol and other psychoactive substances ",E 
 F115 ,10,Mental and behavioural disorders due to use of opioids ,A2 
-F13[1] ,10,Mental and behavioural disorders due to use of sedatives or hypnotics ,A2 
+F13,10,Mental and behavioural disorders due to use of sedatives or hypnotics ,A2 
 F156 ,10,"Mental and behavioural disorders due to use of other stimulants, including caffeine ",A2 
 F166 ,10,Mental and behavioural disorders due to use of hallucinogens ,E 
 F196 ,10,Mental and behavioral disorders due to multiple drug use and use of other psychoactive substances ,A2 
@@ -52,7 +49,6 @@ F556 ,1,Abuse of non-dependence-producing substances ,B2
 G04.0 , ,Acute disseminated encephalitis ,E 
 G21.0 , ,Malignant neuroleptic syndrome ,A1 
 G21.1 , ,Other drug-induced secondary parkinsonism ,A1 
-,,,
 G21.2 , ,Secondary parkinsonism due to other external agents ,A2 
 G24.0 , ,Drug-induced dystonia ,A1 
 G25.0 , ,Essential tremor ,A1 
@@ -76,7 +72,7 @@ H43.1 , ,Vitreous hemorrhage ,E
 H53 ,9,Visual disturbances ,D 
 H91.0 , ,Ototoxic hearing loss ,C 
 H92.2 , ,Otorrhagia ,E 
-I15.8[1] , ,Other secondary hypertension ,D 
+I15.8 , ,Other secondary hypertension ,D 
 I15.9 , ,"Secondary hypertension, unspecified ",E 
 I26 ,2,Pulmonary embolism  ,E 
 I31.2 , ,"Haemopericardium, not elsewhere classified ",E 
@@ -86,7 +82,6 @@ I45.8 , ,Other specified conduction disorders ,E
 I46.1 , ,"Sudden cardiac death, so described",E 
 I47.2 , ,Ventricular tachycardia ,E 
 I49.0 , ,Ventricular fibrillation and flutter ,U 
-,,,
 I60 ,10,Subarachanoid hemorrhage ,E 
 I61 ,9,Intracerebral hemorrhage ,E 
 I62 ,3,Other nontraumatic intracranial haemorrhage , 
@@ -103,7 +98,7 @@ H43.1 , ,Vitreous hemorrhage ,E
 H53 ,9,Visual disturbances ,D 
 H91.0 , ,Ototoxic hearing loss ,C 
 H92.2 , ,Otorrhagia ,E 
-I15.8[1] , ,Other secondary hypertension ,D 
+I15.8 , ,Other secondary hypertension ,D 
 I15.9 , ,"Secondary hypertension, unspecified ",E 
 I26 ,2,Pulmonary embolism  ,E 
 I31.2 , ,"Haemopericardium, not elsewhere classified ",E 
@@ -113,7 +108,6 @@ I45.8 , ,Other specified conduction disorders ,E
 I46.1 , ,"Sudden cardiac death, so described",E 
 I47.2 , ,Ventricular tachycardia ,E 
 I49.0 , ,Ventricular fibrillation and flutter ,U 
-,,,
 I60 ,10,Subarachanoid hemorrhage ,E 
 I61 ,9,Intracerebral hemorrhage ,E 
 I62 ,3,Other nontraumatic intracranial haemorrhage , 
@@ -133,7 +127,7 @@ K71.9 , ,"Toxic liver disease, unspecified ",C
 K72.0 , ,Acute and subacute hepatic failure ,E 
 K72.9 , ,"Hepatic failure, unspecified ",E 
 K76.7 , ,Hepatorenal syndrome ,E 
-K85.3[1] , ,Drug-induced acute pancreatitis ,A1 
+K85.3, ,Drug-induced acute pancreatitis ,A1 
 K92.0 , ,Hematemesis ,E 
 K92.1 , ,Melena ,E 
 K92.2 , ,"Gastrointestinal hemorrhage, unspecified ",E 
@@ -154,12 +148,11 @@ L27.9 , ,Dermatitis due to unspecified substance taken internally ,A2
 L28 ,3,Lichen simplex chronicus and prurigo ,E 
 L29 ,6,Pruritus ,U 
 L30 ,8,Other dermatitis ,E 
-,,,
 L43.2 , ,Lichenoid drug reaction ,A1 
 L50.0 , ,Allergic urticaria ,D 
 L51 ,5,Erythema multiforme ,C 
 L51.1 , ,Bullous erythema multiforme/Stevens?Johnson syndrome ,C 
-L51.2[1] , ,Toxic epidermal necrolysis (Lyell?s Syndrome) ,C 
+L51.2, ,Toxic epidermal necrolysis (Lyell?s Syndrome) ,C 
 L51.8 , ,Other erythema multiforme ,C 
 L51.9 , ,"Erythema multiforme, unspecified ",C 
 L52 ,1,Erythema nodosum ,E 
@@ -169,7 +162,7 @@ L56.2 , ,Photocontact dermatitis (berloque dermatitis) ,C
 L64.0 , ,Drug-induced androgenic alopecia ,A1 
 L71.0 , ,Perioral dermatitis ,E 
 M02.2 , ,Postimmunization arthropathy ,V 
-M10.2[2] , ,Drug-induced gout ,A1 
+M10.2, ,Drug-induced gout ,A1 
 M25.0 , ,Hemarthrosis ,E 
 M31.0 , ,Hypersensitivity angiitis ,E 
 M32.0 , ,Drug-induced systemic lupus erythematosus ,A1 
@@ -180,12 +173,11 @@ L27.9 , ,Dermatitis due to unspecified substance taken internally ,A2
 L28 ,3,Lichen simplex chronicus and prurigo ,E 
 L29 ,6,Pruritus ,U 
 L30 ,8,Other dermatitis ,E 
-,,,
 L43.2 , ,Lichenoid drug reaction ,A1 
 L50.0 , ,Allergic urticaria ,D 
 L51 ,5,Erythema multiforme ,C 
 L51.1 , ,Bullous erythema multiforme/Stevens?Johnson syndrome ,C 
-L51.2[1] , ,Toxic epidermal necrolysis (Lyell?s Syndrome) ,C 
+L51.2, ,Toxic epidermal necrolysis (Lyell?s Syndrome) ,C 
 L51.8 , ,Other erythema multiforme ,C 
 L51.9 , ,"Erythema multiforme, unspecified ",C 
 L52 ,1,Erythema nodosum ,E 
@@ -195,7 +187,7 @@ L56.2 , ,Photocontact dermatitis (berloque dermatitis) ,C
 L64.0 , ,Drug-induced androgenic alopecia ,A1 
 L71.0 , ,Perioral dermatitis ,E 
 M02.2 , ,Postimmunization arthropathy ,V 
-M10.2[2] , ,Drug-induced gout ,A1 
+M10.2, ,Drug-induced gout ,A1 
 M25.0 , ,Hemarthrosis ,E 
 M31.0 , ,Hypersensitivity angiitis ,E 
 M32.0 , ,Drug-induced systemic lupus erythematosus ,A1 
@@ -264,9 +256,7 @@ T88.2 , ,Shock due to anaesthesia ,E
 T88.3 , ,Malignant hyperthermia due to anaesthesia ,A1 
 T88.5 , ,Other complications of anaesthesia ,D 
 T88.6 , ,Anaphylactic shock due to adverse effect of correct drug or medicament properly administered ,A2 
-,,,
 T88.7 , ,Unspecified adverse event of drug or medicament ,A2 
-,,,
 T88.8 , ,"Other specified complications of surgical and medical care, not elsewhere classified",E 
 T88.9 , ,"Complication of surgical and medical care, unspecified",E 
 T96 ,1,"Sequelae of poisoning by drugs, medicaments and biological substances ",B2 
@@ -275,59 +265,44 @@ X41 ,1,"Accidental poisoning by and exposure to antiepileptic, sedative hypnotic
 X42 ,1,Accidental poisoning by and exposure to narcotics and psychodysleptics ,B2 
 X43 ,1,Accidental poisoning by and exposure to other drugs acting on the autonomic nervous system ,B2 
 X44 ,1,"Accidental poisoning by and exposure to other and unspecified drugs, medicaments, and biological substances ",B2 
-X45.5[1] , ,Adverse effects of therapeutic use of 4-aminophenol derivatives ,B2 
+X45.5, ,Adverse effects of therapeutic use of 4-aminophenol derivatives ,B2 
 Y10 ,1,"Poisoning by and exposure to nonopioid analgesics, antipyretics and antirheumatics, undetermined intent ",B2 
 Y12 ,1,"Poisoning by and exposure to narcotics and psychodysleptics (hallucinogens), undetermined intent ",E 
 Y14 ,1,"Poisoning by and exposure to other and unspecified drugs, medicaments, and biological substances, undetermined intent ",E 
 Y40 ,10,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Systemic antibiotic ",A1 
- ,,,
 Y41 ,8,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Other systemic anti-infectives and antiparasitics ",A1 
- ,,,
 Y42 ,10,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Hormones and their synthetic substitutes and antagonists, not elsewhere classified ",A1 
-Y42.7 , ,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - ",A1 
-,,"Hormones and their synthetic substitutes and antagonists, not elsewhere classified, Androgens and anabolic congener ",
+Y42.7 , ,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use -  Hormones and their synthetic substitutes and antagonists, not elsewhere classified, Androgens and anabolic congener ",A1 
 Y43 ,9,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Primarily systemic agents ",A1 
 Y44 ,9,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Agents primarily affecting blood constituents ",A1 
-Y44.0 , ,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Agents primarily affecting blood constituents, Iron preparations and other anti-hypochromic-anaemia ",A1 
-,,,
-,,preparations ,
+Y44.0 , ,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Agents primarily affecting blood constituents, Iron preparations and other anti-hypochromic-anaemia preparations",A1 
 Y44.2 , ,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Agents primarily affecting blood constituents, Anticoagulants ",A1 
-,,,
 Y45 ,8,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Analgesics, antipyretics and anti-inflammatory drugs ",A1 
 Y45.5 , ,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Analgesics, antipyretics and anti-inflammatory drugs, 4-Aminophenol derivatives ",A1 
 Y46 ,9,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Antiepileptics and antiparkinsonism drugs ",A1 
- ,,,
 Y47 ,8,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Sedatives, hypnotics and antianxiety drugs ",A1 
- ,,,
 Y47.1 , ,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Sedatives, hypnotics and antianxiety drugs, Benzodiazepines ",A1 
 Y48 ,6,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Anaesthetics and therapeutic gases ",A1 
- ,,,
 Y48.1 , ,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Anaesthetics and therapeutic gases, Parenteral anaesthetics ",A1 
 Y48.2 , ,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Anaesthetics and therapeutic gases, Other and unspecified general anaesthetics ",A1 
 Y48.3 , ,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Anaesthetics and therapeutic gases, Local anaesthetics ",A1 
 Y48.4 , ,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Anaesthetics and therapeutic gases, Anaesthetic, unspecified ",A1 
 Y49 ,10,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Psychotropic drugs, not elsewhere classified ",A1 
- ,,,
 Y50 ,5,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Central nervous system stimulants, not elsewhere classified ",A1 
- ,,,
 Y51 ,10,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Drugs primarily affecting the autonomic nervous system ",A1 
 Y52 ,10,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Agents primarily affecting the cardiovascular system ",A1 
 Y53 ,10,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Agents primarily affecting the gastrointestinal system ",A1 
 Y54 ,10,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Agents primarily affecting water-balance and mineral and uric acid metabolism ",A1 
 Y55 ,8,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Agents ",A1 
-,,,
 ,,primarily acting on smooth and skeletal muscles and the respiratory system ,
 Y55.1 , ,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Agents primarily acting on smooth and skeletal muscles and the respiratory system, Skeletal muscle relaxants [neuromuscular blocking agents] ",A1 
 Y56 ,10,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Topical agents primarily affecting skin and mucous membrane and ophthalmological, otorhinolaryngological and dental drugs ",A1 
 Y57 ,10,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use -Other and unspecified drugs and medicaments ",A1 
- ,,,
 Y57.5 , ,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use -Other and unspecified drugs and medicaments, X-ray contrast media ",A1 
 Y57.9 , ,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use -Other and unspecified drugs and medicaments, Drug or medicament, unspecified ",A2 
-,,,
 Y58 ,9,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Bacterial vaccines ",A1 
 Y59 ,6,"Drugs, medicaments and biological substances causing adverse effects in therapeutic use - Other and unspecified vaccines and biological substances ",A1 
 Y59.9 , ,"Vaccine or biological substance, unspecified ",A2 
-,,,
 Y60.1 , ,"Unintentional cut, puncture, perforation or haemorrhage during during infusion or transfusion ",U 
 Y60.2 , ,"Unintentional cut, puncture, perforation or haemorrhage during kidney dialysis or other perfusion ",U 
 Y60.3 , ,"Unintentional cut, puncture, perforation or haemorrhage during injection or immunization ",U 
