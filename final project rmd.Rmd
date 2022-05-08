@@ -13,7 +13,7 @@ library(ggplot2)
 ```
 
 ```{r, load-ade-csv}
-ade_csv <- read_tsv('E:/Grad School/NY_ADE_2018_admit.csv', col_types = 'nnnnnfnnnnnnnnfffnfcccnffffffffffffffffffffffffffffffffffffffnfcnccccccccccccccccccccccccccccccccccccccnnccccccccccccccccccccccccccnnnfffnccfnffffffffffffffffffffffffffffffffffffffffffffffffffcnnffnnfffnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnncf', col_names = TRUE)
+ade_csv <- read_tsv('NY_ADE_2018_admit.csv', col_types = 'nnnnnfnnnnnnnnfffnfcccnffffffffffffffffffffffffffffffffffffffnfcnccccccccccccccccccccccccccccccccccccccnnccccccccccccccccccccccccccnnnfffnccfnffffffffffffffffffffffffffffffffffffffffffffffffffcnnffnnfffnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnncf', col_names = TRUE)
 ade_csv <- ade_csv %>% 
   mutate(BP_DIASTOLIC_X = na_if(BP_DIASTOLIC_X, 0)) %>%
   mutate(BP_SYSTOLIC_X = na_if(BP_SYSTOLIC_X, 0)) %>%
@@ -23,6 +23,58 @@ ade_csv <- ade_csv %>%
 ade_csv$BP_DIASTOLIC_X[ade_csv$BP_DIASTOLIC_X > 200] <- 70 #remove outliers
 ade_csv$BP_DIASTOLIC_X[ade_csv$BP_DIASTOLIC_X > ade_csv$BP_SYSTOLIC_X] <- mean(ade_csv$BP_DIASTOLIC_X, na.rm = TRUE) #remove values that don't make sense
 ade_csv$BP_SYSTOLIC_X[ade_csv$BP_DIASTOLIC_X > ade_csv$BP_SYSTOLIC_X] <- mean(ade_csv$BP_SYSTOLIC_X, na.rm = TRUE) #remove values that don't make sense
+
+ade_csv <- ade_csv %>%
+  select(-(PRMONTH1:PRYEAR25))
+
+```
+
+
+
+```{r, top-10-ade}
+
+ade_counts <- ade_csv %>%
+  group_by(Code, Description) %>%
+  summarize(n_icd = n()) %>%
+  left_join(icd, c('Code' = 'V3')) %>%
+  arrange(desc(n_icd)) %>%
+  mutate(Description = fct_relevel(Description, c('Category A1','Category A2', 'Category B2', 'Category C')))
+
+ade_counts %>%
+  head(10) %>%
+  ggplot(aes(x = fct_reorder(V5, n_icd))) +
+  geom_col(aes(y = n_icd/1000, fill = Description)) + 
+  scale_x_discrete(name = 'ICD Description', labels = function(x) str_wrap(str_replace_all(x, "foo" , " "),
+                                                 width = 40)) +
+  theme(legend.position = c(0.75,0.25)) +
+  labs(title = 'Top 10 Most Common ADE\'s, 2018') +
+  scale_y_continuous(name = 'Cases, in thousands') +
+  coord_flip() 
+
+```
+
+
+```{r, top-10-ade-cat-ab}
+
+ade_counts2 <- ade_csv %>%
+  filter(Description != 'Category C') %>%
+  group_by(Code, Description) %>%
+  summarize(n_icd = n()) %>%
+  left_join(icd, c('Code' = 'V3')) %>%
+  arrange(desc(n_icd)) %>%
+  mutate(Description = fct_relevel(Description, c('Category A1','Category A2', 'Category B2', 'Category C')))
+
+ade_counts2 %>%
+  head(10) %>%
+  ggplot(aes(x = fct_reorder(V5, n_icd))) +
+  geom_col(aes(y = n_icd/1000, fill = Description)) + 
+  scale_x_discrete(name = 'ICD Description', labels = function(x) str_wrap(str_replace_all(x, "foo" , " "),
+                                                 width = 40)) +
+  theme(legend.position = c(0.75,0.25)) +
+  labs(title = 'Most Common Category \'A\' drug reactions') +
+  scale_y_continuous(name = 'Cases, in thousands') +
+  coord_flip() 
+
 
 
 
