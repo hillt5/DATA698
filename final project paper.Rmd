@@ -1,0 +1,477 @@
+---
+title: "DATA 698: Final Project"
+output: html_document
+date: '2022-03-25'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+
+```
+
+```{r, load-ade-csv}
+ade_csv <- read_tsv('NY_ADE_2018_admit.csv', col_types = 'nnnnnfnnnnnnnnfffnfcccnffffffffffffffffffffffffffffffffffffffnfcnccccccccccccccccccccccccccccccccccccccnnccccccccccccccccccccccccccnnnfffnccfnffffffffffffffffffffffffffffffffffffffffffffffffffcnnffnnfffnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnncf', col_names = TRUE)
+ade_csv <- ade_csv %>% 
+  mutate(BP_DIASTOLIC_X = na_if(BP_DIASTOLIC_X, 0)) %>% #remove missing values
+  mutate(BP_SYSTOLIC_X = na_if(BP_SYSTOLIC_X, 0)) %>% #remove missin values
+  filter(AGE >= 18) %>% #adult patients
+  mutate(PSTCO = na_if(PSTCO, '')) #generate missing values for missing codes
+  
+ade_csv$BP_DIASTOLIC_X[ade_csv$BP_DIASTOLIC_X > 200] <- 70 #remove outliers
+ade_csv$BP_DIASTOLIC_X[ade_csv$BP_DIASTOLIC_X > ade_csv$BP_SYSTOLIC_X] <- mean(ade_csv$BP_DIASTOLIC_X, na.rm = TRUE) #remove values that don't make sense
+ade_csv$BP_SYSTOLIC_X[ade_csv$BP_DIASTOLIC_X > ade_csv$BP_SYSTOLIC_X] <- mean(ade_csv$BP_SYSTOLIC_X, na.rm = TRUE) #remove values that don't make sense
+
+ade_csv <- ade_csv %>%
+  select(-(PRMONTH1:PRYEAR25)) #remove extra rows
+
+```
+
+```{r, remove-duplicates}
+#duplicate rows are present for patients with more than one ADE ICD code
+#below code will remove duplicate rows and ICD codes, instead providing number of ADE codes
+
+ade_csv <- ade_csv %>%
+  group_by(KEY) %>%
+  mutate(n_ades = n()) %>%
+  ungroup() %>%
+  select(-c(Code, Description)) %>%
+  unique()
+
+```
+
+
+```{r, top-10-ade}
+
+ade_counts <- ade_csv %>%
+  group_by(Code, Description) %>%
+  summarize(n_icd = n()) %>%
+  left_join(icd, c('Code' = 'V3')) %>%
+  arrange(desc(n_icd)) %>%
+  mutate(Description = fct_relevel(Description, c('Category A1','Category A2', 'Category B2', 'Category C')))
+
+ade_counts %>%
+  head(10) %>%
+  ggplot(aes(x = fct_reorder(V5, n_icd))) +
+  geom_col(aes(y = n_icd/1000, fill = Description)) + 
+  scale_x_discrete(name = 'ICD Description', labels = function(x) str_wrap(str_replace_all(x, "foo" , " "),
+                                                 width = 40)) +
+  theme(legend.position = c(0.75,0.25)) +
+  labs(title = 'Top 10 Most Common ADE\'s, 2018') +
+  scale_y_continuous(name = 'Cases, in thousands') +
+  coord_flip() 
+
+```
+
+
+```{r, top-10-ade-cat-ab}
+
+ade_counts2 <- ade_csv %>%
+  filter(Description != 'Category C') %>%
+  group_by(Code, Description) %>%
+  summarize(n_icd = n()) %>%
+  left_join(icd, c('Code' = 'V3')) %>%
+  arrange(desc(n_icd)) %>%
+  mutate(Description = fct_relevel(Description, c('Category A1','Category A2', 'Category B2', 'Category C')))
+
+ade_counts2 %>%
+  head(10) %>%
+  ggplot(aes(x = fct_reorder(V5, n_icd))) +
+  geom_col(aes(y = n_icd/1000, fill = Description)) + 
+  scale_x_discrete(name = 'ICD Description', labels = function(x) str_wrap(str_replace_all(x, "foo" , " "),
+                                                 width = 40)) +
+  theme(legend.position = c(0.75,0.25)) +
+  labs(title = 'Most Common Category \'A\' drug reactions') +
+  scale_y_continuous(name = 'Cases, in thousands') +
+  coord_flip() 
+
+
+
+
+```
+
+
+
+
+```{r, load-other-dfs}
+
+
+icd <- read.csv('https://raw.githubusercontent.com/k4m1113/ICD-10-CSV/master/codes.csv', header =  FALSE) #icd10 diagnosis codes
+
+i10_procedure <- read.csv("i10_procedure.csv", stringsAsFactors = TRUE) #icd 10 procedure codes
+
+charge_codes <- read.csv('revcodes.csv')
+
+NY_FIPS <- read.csv('NY_Municipalities_and_County_FIPS_codes.csv')
+NY_FIPS$County.FIPS[NY_FIPS$County.Name == 'St Lawrence'] <- 36089
+NY_FIPS$County.FIPS <- as.factor(NY_FIPS$County.FIPS)
+
+
+```
+
+```{r, icd-dx-cats}
+
+
+icd <- icd %>% #recoded icd csv with icd dx categories
+  mutate(icd_cat = case_when(substr(V1,1,1) == "A" | substr(V1,1,1) == "B" ~ 'Certain infections and parasitic diseases',
+                             substr(V1,1,1) == "C" ~ 'Neoplasms',
+                             substr(V1,1,1) == "D" ~ 'Diseases of the blood and blood-forming organ',
+                              substr(V1,1,1) == "E" ~ 'Endocrine, nutritional and metabolic diseases',
+                              substr(V1,1,1) == "F" ~ 'Mental, Behavioral and Neurodevelopmental disorders',
+                              substr(V1,1,1) == "G" ~ 'Diseases of the nervous system',
+                              substr(V1,1,1) == "H" & as.numeric(substr(V1, 2,2)) <=5 ~ 'Diseases of the eye and adnexa',
+                              substr(V1,1,1) == "H" & as.numeric(substr(V1, 2,2)) >5 ~ '	Diseases of the ear and mastoid process',
+                              substr(V1,1,1) == "I" ~ 'Diseases of the circulatory system',
+                              substr(V1,1,1) == "J" ~ 'Diseases of the respiratory system',
+                              substr(V1,1,1) == "K" ~ 'Diseases of the digestive system',
+                              substr(V1,1,1) == "L" ~ 'Diseases of the skin and subcutaneous tissue',
+                              substr(V1,1,1) == "M" ~ 'Diseases of the musculoskeletal system and connective tissue',
+                              substr(V1,1,1) == "N" ~ 'Diseases of the genitourinary system',
+                              substr(V1,1,1) == "O" ~ 'Pregnancy, childbirth, and puerperium',
+                              substr(V1,1,1) == "P" ~ 'Certain conditions originating in the perinatal period',
+                              substr(V1,1,1) == "Q" ~ 'Congenital malformations, deformations and chromosomal abnormalities',
+                              substr(V1,1,1) == "R" ~ 'Symptoms, signs, and abnormal clinical laboratory findings, not elsewhere classified',
+                              substr(V1,1,1) == "S" | substr(V1,1,1) == "T" ~ 'Injury, poisoning, and certain other consequences of external causes',
+                              substr(V1,1,1) == "V" | substr(V1,1,1) == "W" | substr(V1,1,1) == "X" | substr(V1,1,1) == "Y" ~ 'External causes of morbidity',
+                              substr(V1,1,1) == "Z" ~ 'Factors influencing health status and contact with health services'
+                             )
+         )
+
+```
+
+
+
+```{r, county-data}
+calculate_mode <- function (x) {
+  ux <- na.omit(unique(x))
+  tab <- tabulate(match(x, ux)); ux[tab == max(tab)]
+}
+
+ade_csv$PSTCO[ade_csv$HOSP_NPI == 1598703019] <- as.factor(36061)
+ade_csv$PSTCO[ade_csv$HOSP_NPI == 1700887411] <- as.factor(36061)
+
+PSTCO_modes <- ade_csv %>%
+  group_by(HOSP_NPI) %>%
+  summarize(PSTCO_mode = calculate_mode(PSTCO)) %>%
+  drop_na() %>%
+  arrange(desc(as.numeric(HOSP_NPI))) %>%
+  filter(!row_number() %in% c(2,7,154,200)) #duplciate modes
+
+
+
+ade_csv <- ade_csv %>%
+  left_join(PSTCO_modes, c('HOSP_NPI' = 'HOSP_NPI'), copy = F)
+
+ade_csv$PSTCO[is.na(ade_csv$PSTCO)] <- ade_csv$PSTCO_mode[is.na(ade_csv$PSTCO)]
+ade_csv <- ade_csv %>%
+  filter(!is.na(PSTCO))
+
+
+FIPS_join <- NY_FIPS %>%
+  select(County.Name, County.FIPS) %>%
+  unique() %>%
+  filter(County.Name != "New York")
+
+
+
+ade_csv <- ade_csv %>%
+  select(-PSTCO_mode) %>%
+  left_join(FIPS_join, c('PSTCO' = 'County.FIPS'))
+
+
+```
+
+
+
+
+```{r, bp-hr-factors}
+ade_csv %>%
+  filter(is.na(REPLACEMENT_PROC))
+
+ade_csv <- ade_csv %>%
+  mutate(HR_cat = case_when(HEART_RATE_X > 110 ~ "Tachycardic",
+                            HEART_RATE_X < 60 ~ "Bradycardic", 
+                            HEART_RATE_X >= 60 & HEART_RATE_X <= 110 ~ "Normal"))
+
+
+ade_csv$HR_cat <- replace_na(ade_csv$HR_cat, "Missing")
+ade_csv$HR_cat <- as.factor(ade_csv$HR_cat)
+
+
+ade_csv <- ade_csv %>%
+  mutate(BP_cat = case_when(BP_SYSTOLIC_X < 90 & BP_DIASTOLIC_X < 60 ~ "Hypotensive",
+                            (BP_SYSTOLIC_X >= 90 & BP_DIASTOLIC_X >= 60) & (BP_SYSTOLIC_X >= 129 & BP_DIASTOLIC_X > 79)  ~ "Normal",
+                            (BP_SYSTOLIC_X >= 130 | BP_DIASTOLIC_X >= 80)  & (BP_SYSTOLIC_X <= 139 & BP_DIASTOLIC_X <= 89)~ "Stage I Hypertension",
+                            (BP_SYSTOLIC_X >= 140 | BP_DIASTOLIC_X >= 90) & (BP_SYSTOLIC_X <= 179 & BP_DIASTOLIC_X <= 109) ~ "Stage II Hypertension",
+                            BP_SYSTOLIC_X >= 180 | BP_DIASTOLIC_X >= 110 ~ "Hypertensive Urgency"))
+
+ade_csv$BP_cat <- replace_na(ade_csv$BP_cat, "Missing")
+ade_csv$BP_cat <- as.factor(ade_csv$BP_cat)
+
+ade_csv <- ade_csv %>%
+  select(-BP_DIASTOLIC_X,-BP_SYSTOLIC_X, -HEART_RATE_X)
+
+```
+
+
+
+
+
+```{r, num-admissions}
+
+
+ade_admissions <- ade_csv %>% #multiple admissions
+  group_by(KEY) %>%
+  summarize(n_admissions = n()) %>%
+  arrange(desc(n_admissions))
+
+hist(ade_admissions$n_admissions) #graph of distribution
+
+
+
+ade_csv %>%
+  filter(LOS_X > 12)
+ade_csv %>% #admission types for each multiple admission
+  filter(KEY %in% ade_admissions[ade_admissions$n_admissions > 1,][['KEY']]) %>%
+  group_by(Code) %>%
+  summarize(n_admit_type = n()) %>%
+  arrange(desc(n_admit_type))
+
+ade_csv %>% # #total number of diagnoses for ADE
+  group_by(Code) %>%
+  summarize(n_admit_type = n()) %>%
+  arrange(desc(n_admit_type))
+
+ade_csv %>% #total number of ADE types, admitting or no
+  group_by(Code) %>%
+  summarize(n_admit_type = n()) %>%
+  arrange(desc(n_admit_type))
+
+ade_csv %>% #admitting diagnosis is ADE
+  filter(I10_DX_Admitting %in% Code) %>%
+  group_by(Code) %>%
+  summarize(n_admit_type = n()) %>%
+  arrange(desc(n_admit_type))
+
+
+
+
+```
+
+
+
+
+```{r, n-Diagnoses}
+summary(ade_csv$DXPOA21)
+summary(ade_csv$I10_NDX)
+
+ggplot(ade_csv, aes(I10_NDX)) + #anomaly in the number of diagnoses
+  geom_bar() +
+  geom_vline(xintercept = 25)
+
+```
+
+
+```{r, charges}
+mean(ade_csv$TOTCHG_X)
+hist(log(ade_csv$TOTCHG_X))
+```
+
+
+
+
+```{r, ade-csv} 
+ade_csv %>% #most common ADEs
+  group_by(Code) %>%
+  summarize(n_pt = n()) %>%
+  arrange(desc(n_pt))
+
+
+ade_csv %>% #most common ADEs, admitting only
+  dplyr::select(I10_DX_Admitting) %>%
+  group_by(I10_DX_Admitting) %>%
+  summarize(n_patients = n()) %>%
+  arrange(desc(n_patients)) %>%
+  head()
+```
+
+
+
+
+```{r, ade-na's}
+
+
+summary(ade_csv$BP_DIASTOLIC_X[ade_csv$BP_DIASTOLIC_X != 0])
+summary(ade_csv$BP_SYSTOLIC_X[ade_csv$BP_SYSTOLIC_X != 0])
+mean(ade_csv$DIED)
+summary(ade_csv$FEMALE, na.rm = TRUE)
+summary(ade_csv$RACE)
+```
+
+
+```{r, common-dx-plot}
+
+ade_csv <- ade_csv %>% inner_join(icd, by = c('Code' = 'V3'))
+
+
+code_plot <- ade_csv %>%
+  group_by(V6) %>%
+  summarize(n_code= n()) %>%
+  arrange(desc(n_code))
+  
+
+
+ggplot(tcat_plot, aes(x = icd_cat, y = 100*round(n_cat/44583,2))) +
+  geom_col() +
+  coord_flip()
+
+tdx_plot <- ade_csv %>% #summarize the different diagnoses (including non-ade related ones)
+  dplyr:: select(I10_DX_Admitting, I10_DX1:I10_DX35) %>%
+  gather(orig_col, Code, c(I10_DX_Admitting,I10_DX1:I10_DX35),factor_key = TRUE ) %>%
+  drop_na()
+summary(tdx_plot)
+tdx_plot %>%
+  group_by(orig_col) %>%
+  summarize(dx_no = n())
+
+
+
+
+summary(ade_csv$I10_NDX)
+
+tdx_plot %>% #most common diagnoses by category
+  group_by(Code) %>%
+  inner_join(icd, by = c("Code" = "V3")) %>%
+  group_by(icd_cat) %>%
+  summarize(cat_patients = n()) %>%
+  arrange(desc(cat_patients)) %>%
+  mutate(pct_pateints = 100*round(cat_patients/nrow(tdx_plot),2)) %>%
+  View()
+         
+
+tdx_plot %>% #most common diagnoses by icd code
+  group_by(Code) %>%
+  summarize(cat_patients = n()) %>%
+  inner_join(icd, by = c("Code" = "V3")) %>%
+  arrange(desc(cat_patients)) %>%
+  mutate(pct_pateints = 100*round(cat_patients/nrow(ade_csv),2)) %>%
+  filter(str_detect(icd_cat, 'Factors influencing he')) %>%
+  View()
+         
+tdx_plot %>% #icd codes starting with z
+  filter(str_detect(Code, "^Z")) %>%
+  group_by(Code) %>%
+  summarize(n_code = n()) %>%
+  arrange(desc(n_code))
+
+tdx_plot %>% #most common diagnoses by icd supercode
+  inner_join(icd, by = c("Code" = "V3")) %>%
+  group_by(V6) %>%
+  summarize(cat_patients = n()) %>%
+  arrange(desc(cat_patients)) %>%
+  mutate(pct_pateints = 100*round(cat_patients/nrow(ade_csv),2)) %>%
+  View()
+         
+
+summary(as.factor(ade_csv$icd_cat))
+
+
+
+tdx_plot %>% #find most common diagnoses
+  group_by(Code) %>%
+  summarize(n_pt = n()) %>%
+  arrange(desc(n_pt)) %>%
+  mutate(pct = 100*round(n_pt/44583,2)) %>%
+  head(134) %>%
+  summarize(total_pct = sum(n_pt)/848466) 
+
+
+```
+
+
+
+
+```{r, admitting-dx-plot}
+admit_plot <- ade_csv %>%  #same thing, only looking at admitting diagnosis
+  dplyr:: select(I10_DX_Admitting) %>%
+  gather(dx_num, Code, I10_DX_Admitting,factor_key = TRUE ) %>%
+  mutate(Code = as.factor(Code)) %>%
+  group_by(Code) %>%
+  summarize(n_patients = n()) %>%
+  mutate(Code = na_if(Code, ' ')) %>%
+  drop_na() %>%
+  arrange(desc(n_patients))
+
+
+admit_plot <- inner_join(admit_plot, icd, by = c('Code' = 'V3')) %>%
+  dplyr:: select(V6, Code, n_patients, icd_cat) #selected more general diagnosis
+
+ggplot(admit_plot, aes(x = icd_cat, y = n_patients/44583)) + #number of patients with admitting diagnosis of a particular category
+  geom_col() +
+  coord_flip()
+
+
+summary(admit_plot$n_patients)
+
+ggplot(head(admit_plot), aes(x = V6, y = n_patients/44583 )) +
+  geom_bar(stat = 'identity') +
+  coord_flip()
+
+
+```
+
+
+
+
+```{r, common-proc-plot}
+proc_plot <- ade_csv %>% #use similar code to determine most common procedures
+  dplyr:: select(I10_PR1:I10_PR25) %>%
+  gather(dx_num, Code, I10_PR1:I10_PR25,factor_key = TRUE ) %>%
+  mutate(Code = as.factor(Code)) %>%
+  group_by(Code) %>%
+  summarize(n_patients = n()) %>%
+  mutate(Code = na_if(Code, ' ')) %>%
+  drop_na() %>%
+  arrange(desc(n_patients)) %>%
+  inner_join(i10_procedure, by = c('Code' = 'ICD.10.PCS.CODE'))  %>% #join with i10 procedure text csv
+  dplyr :: select(ICD.10.PCS.CODE.DESCRIPTION, n_patients, Code) %>%
+  mutate(percent = 100*round(n_patients/31106,3))  #add percent column, denominator is number of people with at least one proc
+
+ggplot(head(proc_plot), aes(x = stringr::str_wrap(ICD.10.PCS.CODE.DESCRIPTION, 12), y = percent)) +
+  geom_bar(stat = 'identity') #top most common procedures
+
+proc
+hist(ade_csv$I10_NPR) #number of procedures, distribution
+summary(ade_csv$I10_NPR)
+
+proc_plot %>%
+  mutate(icd_char = as.character(Code)) %>%
+  mutate(icd_cat = substr(icd_char, 1,3)) %>%
+  group_by(icd_cat) %>%
+  summarize(n_cat = sum(n_patients)) %>%
+  View()
+
+sum(proc_plot$percent)
+
+proc_plot %>% #most common procedures by icd code
+  filter(str_detect(as.character(ICD.10.PCS.CODE.DESCRIPTION), 'Magnetic'))  %>%
+  summarize(n_pct = sum(percent))
+  #View()
+```
+
+
+```{r, charge-join}
+
+ade_charges <- ade_csv %>%
+  inner_join(charge_df, by = c('KEY' = 'KEY')) %>% 
+  inner_join(charge_codes, by = c('REVCODE' = 'Code'))
+
+#names(charge_df)[1] <- 'CHARGE'
+ade_charges$UNITS <- replace_na(ade_charges$UNITS, 1)
+names(ade_charges)[257] <- "CHARGE"
+View(charge_ratio)
+#options(scipen = 20) #use to remove scientific notation
+```
+
