@@ -1,0 +1,515 @@
+---
+title: "DATA 698: Final Project Feature Engineering"
+output: html_document
+date: '2022-03-25'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+
+```
+
+```{r, load-ade-csv}
+core_csv <- read_tsv('E:/Grad School/NY_SID_2018_CORE.csv', col_types = 'nnnnnfnnnnnnnnfffnfcccnffffffffffffffffffffffffffffffffffffffnfcnccccccccccccccccccccccccccccccccccccccnnccccccccccccccccccccccccccnnnfffnccfnffffffffffffffffffffffffffffffffffffffffffffffffffcnnffnnfffnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn', col_names = TRUE)
+core_csv <- core_csv %>% 
+  mutate(BP_DIASTOLIC_X = na_if(BP_DIASTOLIC_X, 0)) %>%
+  mutate(BP_SYSTOLIC_X = na_if(BP_SYSTOLIC_X, 0)) %>%
+  filter(AGE >= 18) %>%
+  mutate(PSTCO = na_if(PSTCO, ''))
+  
+core_csv$BP_DIASTOLIC_X[core_csv$BP_DIASTOLIC_X > 200] <- 70 #remove outliers
+core_csv$BP_DIASTOLIC_X[core_csv$BP_DIASTOLIC_X > core_csv$BP_SYSTOLIC_X] <- mean(core_csv$BP_DIASTOLIC_X, na.rm = TRUE) #remove values that don't make sense
+core_csv$BP_SYSTOLIC_X[core_csv$BP_DIASTOLIC_X > core_csv$BP_SYSTOLIC_X] <- mean(core_csv$BP_SYSTOLIC_X, na.rm = TRUE) #remove values that don't make sense
+
+
+
+```
+
+
+
+```{r, remove-duplicates}
+#duplicate rows are present for patients with more than one ADE ICD code
+#below code will remove duplicate rows and ICD codes, instead providing number of ADE codes
+
+core_csv <- core_csv %>%
+  group_by(KEY) %>%
+  mutate(n_ades = n()) %>%
+  ungroup() %>%
+  select(-c(Code, Description)) %>%
+  unique()
+
+```
+
+```{r, load-other-dfs}
+
+
+icd <- read.csv('https://raw.githubusercontent.com/k4m1113/ICD-10-CSV/master/codes.csv', header =  FALSE) #icd10 diagnosis codes
+
+i10_procedure <- read.csv("i10_procedure.csv", stringsAsFactors = TRUE) #icd 10 procedure codes
+
+charge_codes <- read.csv('revcodes.csv')
+
+NY_FIPS <- read.csv('NY_Municipalities_and_County_FIPS_codes.csv')
+NY_FIPS$County.FIPS[NY_FIPS$County.Name == 'St Lawrence'] <- 36089
+NY_FIPS$County.FIPS <- as.factor(NY_FIPS$County.FIPS)
+
+
+```
+
+```{r, icd-dx-cats}
+
+
+icd <- icd %>% #recoded icd csv with icd dx categories
+  mutate(icd_cat = case_when(substr(V1,1,1) == "A" | substr(V1,1,1) == "B" ~ 'Certain infections and parasitic diseases',
+                             substr(V1,1,1) == "C" ~ 'Neoplasms',
+                             substr(V1,1,1) == "D" ~ 'Diseases of the blood and blood-forming organ',
+                              substr(V1,1,1) == "E" ~ 'Endocrine, nutritional and metabolic diseases',
+                              substr(V1,1,1) == "F" ~ 'Mental, Behavioral and Neurodevelopmental disorders',
+                              substr(V1,1,1) == "G" ~ 'Diseases of the nervous system',
+                              substr(V1,1,1) == "H" & as.numeric(substr(V1, 2,2)) <=5 ~ 'Diseases of the eye and adnexa',
+                              substr(V1,1,1) == "H" & as.numeric(substr(V1, 2,2)) >5 ~ '	Diseases of the ear and mastoid process',
+                              substr(V1,1,1) == "I" ~ 'Diseases of the circulatory system',
+                              substr(V1,1,1) == "J" ~ 'Diseases of the respiratory system',
+                              substr(V1,1,1) == "K" ~ 'Diseases of the digestive system',
+                              substr(V1,1,1) == "L" ~ 'Diseases of the skin and subcutaneous tissue',
+                              substr(V1,1,1) == "M" ~ 'Diseases of the musculoskeletal system and connective tissue',
+                              substr(V1,1,1) == "N" ~ 'Diseases of the genitourinary system',
+                              substr(V1,1,1) == "O" ~ 'Pregnancy, childbirth, and puerperium',
+                              substr(V1,1,1) == "P" ~ 'Certain conditions originating in the perinatal period',
+                              substr(V1,1,1) == "Q" ~ 'Congenital malformations, deformations and chromosomal abnormalities',
+                              substr(V1,1,1) == "R" ~ 'Symptoms, signs, and abnormal clinical laboratory findings, not elsewhere classified',
+                              substr(V1,1,1) == "S" | substr(V1,1,1) == "T" ~ 'Injury, poisoning, and certain other consequences of external causes',
+                              substr(V1,1,1) == "V" | substr(V1,1,1) == "W" | substr(V1,1,1) == "X" | substr(V1,1,1) == "Y" ~ 'External causes of morbidity',
+                              substr(V1,1,1) == "Z" ~ 'Factors influencing health status and contact with health services'
+                             )
+         )
+
+```
+
+
+
+```{r, tdx-dummies}
+tdx_plot <- core_csv %>% #summarize the different diagnoses (including non-ade related ones)
+  dplyr:: select(KEY, I10_DX_Admitting:I10_DX35) %>%
+  gather(orig_col, Code, c(I10_DX_Admitting,I10_DX1:I10_DX35),factor_key = TRUE ) %>%
+  select(-orig_col) %>%
+  drop_na()
+
+
+
+tdx_plot <- tdx_plot %>%
+  mutate(INFECTIOUS_DX = as.numeric(str_detect(Code, '^B|^A'))) %>%
+  mutate(NEOPLASMS_DX = as.numeric(str_detect(Code, '^C|^D[0-4]'))) %>%
+  mutate(BLOOD_DX = as.numeric(str_detect(Code, '^D[5-9]'))) %>%
+  mutate(ENDOCRINE_DX = as.numeric(str_detect(Code, '^E'))) %>%
+  mutate(MENTAL_DX = as.numeric(str_detect(Code, '^F'))) %>%
+  mutate(NERVOUS_DX = as.numeric(str_detect(Code, '^G'))) %>% 
+  mutate(EYE_DX = as.numeric(str_detect(Code, '^H[0-5]'))) %>%
+  mutate(EAR_DX = as.numeric(str_detect(Code, '^H[6-9]'))) %>%
+  mutate(CIRCULATORY = as.numeric(str_detect(Code, '^I'))) %>%
+  mutate(RESPIRATORY_DX = as.numeric(str_detect(Code, '^J'))) %>%
+  mutate(DIGESTIVE_DX = as.numeric(str_detect(Code, '^K'))) %>%
+  mutate(SKIN_DX = as.numeric(str_detect(Code, '^L'))) %>% 
+  mutate(MUSC_DX = as.numeric(str_detect(Code, '^M'))) %>%
+  mutate(GU_DX = as.numeric(str_detect(Code, '^N'))) %>%
+  mutate(OBGYN_DX = as.numeric(str_detect(Code, '^O|^P'))) %>%
+  mutate(CONGENITAL_DX = as.numeric(str_detect(Code, '^Q'))) %>%
+  mutate(LAB_DX = as.numeric(str_detect(Code, '^R'))) %>%
+  mutate(INJ_DX = as.numeric(str_detect(Code, '^S|^T'))) %>%
+  mutate(SPECIAL_DX = as.numeric(str_detect(Code, '^U'))) %>%
+  mutate(EXTERNAL_DX = as.numeric(str_detect(Code, '^V'))) %>%
+  mutate(FACTORS_DX = as.numeric(str_detect(Code, '^Z'))) %>%
+  mutate(GLAUCOMA_DX = as.numeric(str_detect(Code, 'H409'))) %>%
+  mutate(SKERUPTION_DX = as.numeric(str_detect(Code, 'L27'))) %>%
+  mutate(CELLULITIS_DX = as.numeric(str_detect(Code, 'L0311'))) %>%
+  mutate(OA_DX = as.numeric(str_detect(Code, 'M1[6-9]'))) %>%
+  mutate(GOUT_DX = as.numeric(str_detect(Code, 'M100'))) %>%
+  mutate(OS_DX = as.numeric(str_detect(Code, 'M81'))) %>%
+  mutate(RA_DX = as.numeric(str_detect(Code, 'M069'))) %>%
+  mutate(RHABDO_DX = as.numeric(str_detect(Code, 'M628'))) %>%
+  mutate(SEPSIS_DX = as.numeric(str_detect(Code, 'A41[5-9]|A42[0-7]'))) %>%
+  mutate(ECOLI_DX = as.numeric(str_detect(Code, 'B962'))) %>%
+  mutate(CANDIDIASIS_DX = as.numeric(str_detect(Code, 'B37'))) %>%
+  mutate(HEP_C_DX = as.numeric(str_detect(Code, 'B1[8-9]'))) %>%
+  mutate(CDIFF_DX = as.numeric(str_detect(Code, 'A047'))) %>%
+  mutate(NOSOCOMIAL_DX = as.numeric(str_detect(Code, 'Y9223|Y95'))) %>%
+  mutate(TRANS_AMP_DX = as.numeric(str_detect(Code, 'Y83'))) %>%
+  mutate(BLOOD_ALCOHOL_DX = as.numeric(str_detect(Code, 'Y90'))) %>%
+  mutate(NOT_HOSPITAL_DX = as.numeric(str_detect(Code, 'Y92[0-1][0-9]|Y922[0-2]'))) %>%
+  mutate(LIVER_CANCER_DX = as.numeric(str_detect(Code, 'C78[6-7]'))) %>%
+  mutate(BONE_CANCER_DX = as.numeric(str_detect(Code, 'C795'))) %>%
+  mutate(MMYELOMA_DX = as.numeric(str_detect(Code, 'C900'))) %>%
+  mutate(SECONDARY_MALIGNANCY_DX = as.numeric(str_detect(Code, 'C7[7-9][0-9]'))) %>%
+  mutate(BRAIN_CANCER_DX = as.numeric(str_detect(Code, 'C793'))) %>%
+  mutate(AML_DX = as.numeric(str_detect(Code, 'C920'))) %>%
+  mutate(LUNG_DX = as.numeric(str_detect(Code, 'C34[0-9]|C378[0-3]'))) %>%
+  mutate(BREAST_DX = as.numeric(str_detect(Code, 'C500[1-9]|C50[1-8][0-9]|C509[0-2]'))) %>%
+  mutate(COLON_CANCER_DX = as.numeric(str_detect(Code, 'C18'))) %>%
+  mutate(NODE_CA_DX = as.numeric(str_detect(Code, 'C77'))) %>%
+  mutate(OSA_DX = as.numeric(str_detect(Code, 'G473'))) %>%
+  mutate(NEUROPATHY_DX = as.numeric(str_detect(Code, 'G62'))) %>%
+  mutate(CHRONIC_PAIN_DX = as.numeric(str_detect(Code, 'G89[2-3]'))) %>%
+  mutate(ENCEPHALOPATHY_DX = as.numeric(str_detect(Code, 'G92$|G934'))) %>%
+  mutate(EPILEPSY_DX = as.numeric(str_detect(Code, 'G40[0-9][0-9]|G409[0-1]'))) %>%
+  mutate(INSOMNIA_DX = as.numeric(str_detect(Code, 'G470'))) %>%
+  mutate(DRUG_TREMOR_DX = as.numeric(str_detect(Code, 'G251'))) %>%
+  mutate(PARKINSONS_DX = as.numeric(str_detect(Code, 'G20$'))) %>%
+  mutate(NMS_DX = as.numeric(str_detect(Code, 'G21$'))) %>%
+  mutate(EPS_DX = as.numeric(str_detect(Code, 'G240'))) %>%
+  mutate(RLS_DX = as.numeric(str_detect(Code, 'G258'))) %>%
+  mutate(ALZHEIMERS_DX = as.numeric(str_detect(Code, 'G30$'))) %>%
+  mutate(MIGRAINE_DX = as.numeric(str_detect(Code, 'G43[0-8][0-9]|G439[0-1]'))) %>%
+  mutate(DRUG_MYOPATHY_DX = as.numeric(str_detect(Code, 'G72'))) %>%
+  mutate(PNEUMONIA_DX = as.numeric(str_detect(Code, 'J1[3-8]'))) %>%
+  mutate(COPD_DX = as.numeric(str_detect(Code, 'J44$'))) %>%
+  mutate(ARF_DX = as.numeric(str_detect(Code, 'J960'))) %>%
+  mutate(ASTHMA_DX = as.numeric(str_detect(Code, 'J45[2-9]|J4[6-8][0-9]|J4590'))) %>%
+  mutate(CRF_DX = as.numeric(str_detect(Code, 'J96[1-9]'))) %>%
+  mutate(ATELECTASIS_DX = as.numeric(str_detect(Code, 'J981'))) %>%
+  mutate(PLEURAL_EFFUSION_DX = as.numeric(str_detect(Code, 'J9[0-2]'))) %>%
+  mutate(ASP_PNEUMONIA_DX = as.numeric(str_detect(Code, 'J69$'))) %>%
+  mutate(MDD_DX = as.numeric(str_detect(Code, 'F3[2-3][0-9]'))) %>%
+  mutate(ANXIETY_DX = as.numeric(str_detect(Code, 'F41$'))) %>%
+  mutate(NICOTINE_DX = as.numeric(str_detect(Code, 'F1721'))) %>%
+  mutate(ETOH_DEP_DX = as.numeric(str_detect(Code, 'F10[1-9]'))) %>%
+  mutate(DEMENTIA_DX = as.numeric(str_detect(Code, 'F01[5-9]|F0[2-3][0-9]'))) %>%
+  mutate(DELIRIUM_DX = as.numeric(str_detect(Code, 'F05$'))) %>%
+  mutate(OPIOID_DEP_DX = as.numeric(str_detect(Code, 'F11[1-9]|F[2-9][0-9]'))) %>%
+  mutate(COCAINE_DEP_DX = as.numeric(str_detect(Code, 'F14[1-9]'))) %>%
+  mutate(SEDATIVE_ABUSE_DX = as.numeric(str_detect(Code, 'F13[1-9]'))) %>%
+  mutate(CANNABIS_DEP_DX = as.numeric(str_detect(Code, 'F12[1-9]'))) %>%
+  mutate(SCHIZOPHRENIA_DX = as.numeric(str_detect(Code, 'F2[0-9]'))) %>%
+  mutate(PTSD_DX = as.numeric(str_detect(Code, 'F431'))) %>%
+  mutate(MANIA_DX = as.numeric(str_detect(Code, 'F31$|F31[0-9]'))) %>%
+  mutate(DIAGNOSTIC_INJ_DX = as.numeric(str_detect(Code, 'T508X5'))) %>%
+  mutate(ANTINEOPLASTIC_INJ_DX = as.numeric(str_detect(Code, 'T451X5'))) %>%
+  mutate(ANTIBIOTIC_INJ_DX = as.numeric(str_detect(Code, 'T36[0-8]X5'))) %>%
+  mutate(SULFONAMIDE_INJ_DX = as.numeric(str_detect(Code, 'T370X[1-6]'))) %>%
+  mutate(GLUCOCORTICOID_INJ_DX = as.numeric(str_detect(Code, 'T380X5'))) %>%
+  mutate(ANTIHYPERGLYCEMIC_INJ_DX = as.numeric(str_detect(Code, 'T383X[1-6]'))) %>%
+  mutate(APAP_INJ_DX = as.numeric(str_detect(Code, 'T391X[1-5]'))) %>%
+  mutate(OPIOID_INJ = as.numeric(str_detect(Code, 'T402X5'))) %>%
+  mutate(ANTIHYPERTENSIVE_INJ_DX = as.numeric(str_detect(Code, 'T46X5'))) %>%
+  mutate(DIURETIC_INJ = as.numeric(str_detect(Code, 'T501X5'))) %>%
+  mutate(AKI_DX = as.numeric(str_detect(Code, 'N17$'))) %>%
+  mutate(UTI_DX = as.numeric(str_detect(Code, 'N39$'))) %>%
+  mutate(CKD_DX = as.numeric(str_detect(Code, 'N18$'))) %>%
+  mutate(NEPHROPATHY_DX = as.numeric(str_detect(Code, 'N14$'))) %>%
+  mutate(BPH_DX = as.numeric(str_detect(Code, 'N4$'))) %>%
+  mutate(PYLEONEPHRITIS_DX = as.numeric(str_detect(Code, 'N1[0-3]'))) %>%
+  mutate(RENAL_CALCULI_DX = as.numeric(str_detect(Code, 'N20$'))) %>%
+  mutate(HYPER_PTH_DX = as.numeric(str_detect(Code, 'N258'))) %>%
+  mutate(GERD_DX = as.numeric(str_detect(Code, 'K21$'))) %>%
+  mutate(COLITIS_DX = as.numeric(str_detect(Code, 'K52$|K52[0-9]'))) %>%
+  mutate(CONSTIPATION_DX = as.numeric(str_detect(Code, 'K590|K56$|K564'))) %>%
+  mutate(ILEUS_DX = as.numeric(str_detect(Code, 'K567'))) %>%
+  mutate(DIVERTICULI_DX = as.numeric(str_detect(Code, 'K57[0-9]'))) %>%
+  mutate(PORTAL_HTN_DX = as.numeric(str_detect(Code, 'K76$'))) %>%
+  mutate(CIRRHOSIS_DX = as.numeric(str_detect(Code, 'K746'))) %>%
+  mutate(ETOH_LIVER_DX = as.numeric(str_detect(Code, 'K70$|K70[0-9]'))) %>%
+  mutate(GIB_DX = as.numeric(str_detect(Code, 'K920|K2921|K29[5-9]1'))) %>%
+  mutate(HERNIA_DX = as.numeric(str_detect(Code, 'K4[0-6]'))) %>%
+  mutate(FATTY_LIVER_DX = as.numeric(str_detect(Code, 'K76$'))) %>%
+  mutate(LIVER_FAILURE_DX = as.numeric(str_detect(Code, 'K72[0-3]'))) %>%
+  mutate(DIGESTIVE_CALCULI_DX = as.numeric(str_detect(Code, 'K80[0-7]'))) %>%
+  mutate(PANCREATITIS_DX = as.numeric(str_detect(Code, 'K85|K86'))) %>%
+  mutate(THROMBOCYTOPENIA_DX = as.numeric(str_detect(Code, 'D695'))) %>%
+  mutate(ANEMIA_DX = as.numeric(str_detect(Code, 'D5[0-9]|D6[1-4][0-9]'))) %>%
+  mutate(PANCYTOPENIA_DX = as.numeric(str_detect(Code, 'D6181|K469ACZ'))) %>%
+  mutate(ELEV_WBC_DX = as.numeric(str_detect(Code, 'D7Z$|D72[0-7]|D728'))) %>%
+  mutate(NEUTROPENIA_DX = as.numeric(str_detect(Code, 'D70$'))) %>%
+  mutate(COAGULATION_DEFECT_DX = as.numeric(str_detect(Code, 'D6[5-8]'))) %>%
+  mutate(SEPTIC_SHOCK_DX = as.numeric(str_detect(Code, 'R57$|R57[0-9]|R6[0-4][0-9]|R65[0-2]'))) %>%
+  mutate(FEVER_DX = as.numeric(str_detect(Code, 'R50[8-9]'))) %>%
+  mutate(TACHYCARDIA_DX = as.numeric(str_detect(Code, 'R000'))) %>%
+  mutate(SYCOPE_DX = as.numeric(str_detect(Code, 'R55$'))) %>%
+  mutate(ASCITES_DX = as.numeric(str_detect(Code, 'R18$'))) %>%
+  mutate(DIARRHEA_DX = as.numeric(str_detect(Code, 'R197$'))) %>%
+  mutate(SOB_DX = as.numeric(str_detect(Code, 'R05|R06[0-8]'))) %>%
+  mutate(WEAKNESS_DX = as.numeric(str_detect(Code, 'R53$'))) %>%
+  mutate(ELEV_LFT_DX = as.numeric(str_detect(Code, 'R74$'))) %>%
+  mutate(HYPOXEMIA_DX = as.numeric(str_detect(Code, 'R090'))) %>%
+  mutate(DYSPHAGIA_DX = as.numeric(str_detect(Code, 'R1331'))) %>%
+  mutate(BRADYCARDIA_DX = as.numeric(str_detect(Code, 'R001'))) %>%
+  mutate(ABD_PAIN_DX = as.numeric(str_detect(Code, 'R109'))) %>%
+  mutate(URINARY_RETENTION_DX = as.numeric(str_detect(Code, 'R33$'))) %>%
+  mutate(FAILURE_THRIVE_DX = as.numeric(str_detect(Code, 'R62[7-9]|R63[0-9]|R64$'))) %>%
+  mutate(NAUSEA_DX = as.numeric(str_detect(Code, 'R112'))) %>%
+  mutate(CHEST_PAIN_DX = as.numeric(str_detect(Code, 'R0079'))) %>%
+  mutate(MINOR_BLEED_DX = as.numeric(str_detect(Code, 'R04$|R31'))) %>%
+  mutate(RASH_DX = as.numeric(str_detect(Code, 'R21$'))) %>%
+  mutate(FALLS_DX = as.numeric(str_detect(Code, 'R29$'))) %>%
+  mutate(HEADACHE_DX = as.numeric(str_detect(Code, 'R51$'))) %>%
+  mutate(HYPERGLYCEMIA_DX = as.numeric(str_detect(Code, 'R73[0-9]'))) %>%
+  mutate(HYPERLIPID_DX = as.numeric(str_detect(Code, 'E78[0-9]'))) %>%
+  mutate(HYPERKALEMIA_DX = as.numeric(str_detect(Code, 'E876'))) %>%
+  mutate(DEHYDRATION_DX = as.numeric(str_detect(Code, 'E860'))) %>%
+  mutate(HYPONATREMIA_DX = as.numeric(str_detect(Code, 'E871'))) %>%
+  mutate(ACIDOSIS_DX = as.numeric(str_detect(Code, 'E872'))) %>%
+  mutate(ALKALOSIS_DX = as.numeric(str_detect(Code, 'E873'))) %>%
+  mutate(HYPO_PTH_DX = as.numeric(str_detect(Code, 'E03[0-9]|E890'))) %>%
+  mutate(HYPER_PTH_DX = as.numeric(str_detect(Code, 'E0[4-7][0-9]'))) %>%
+  mutate(HYPOMAGNESEMIA_DX = as.numeric(str_detect(Code, 'E8342'))) %>%
+  mutate(DM_DX = as.numeric(str_detect(Code, 'E079|E[8-9]|E1[0-3][0-9]'))) %>%
+  mutate(HYPERKALEMIA_DX = as.numeric(str_detect(Code, 'E875'))) %>%
+  mutate(MALNUTRITION_DX = as.numeric(str_detect(Code, 'E43[0-9]|E[4-5][0-9]|E64[0-8]'))) %>%
+  mutate(HYPOVOLEMIA_DX = as.numeric(str_detect(Code, 'E86[0-2]'))) %>%
+  mutate(SIADH_DX = as.numeric(str_detect(Code, 'E222'))) %>%
+  mutate(ADRENAL_INSUFF_DX = as.numeric(str_detect(Code, 'E27$|E27[0-9]'))) %>%
+  mutate(HYPOCALCEMIA_DX = as.numeric(str_detect(Code, 'E8351'))) %>%
+  mutate(EDEMA_DX = as.numeric(str_detect(Code, 'E877[0-9]'))) %>%
+  mutate(VIT_D_DEF_DX = as.numeric(str_detect(Code, 'E559'))) %>%
+  mutate(OBESITY_DX = as.numeric(str_detect(Code, 'E65$|E65[0-9]|E66[0-9]'))) %>%
+  mutate(PHOS_METABOLISM_DX = as.numeric(str_detect(Code, 'E833'))) %>%
+  mutate(HTN_DX = as.numeric(str_detect(Code, 'I10$'))) %>%
+  mutate(CAD_DX = as.numeric(str_detect(Code, 'I251'))) %>%
+  mutate(ISCHEMIC_HD_DX = as.numeric(str_detect(Code, 'I24[8-9]|I25[5-6]'))) %>%
+  mutate(THROMBOSIS_DX = as.numeric(str_detect(Code, 'I26[0-9]|I6[3-9]|I82'))) %>%
+  mutate(VARICES_DX = as.numeric(str_detect(Code, 'I85[0-9]|I860'))) %>%
+  mutate(PULM_HTN_DX = as.numeric(str_detect(Code, 'I27[0-9]|I28[0-9]'))) %>%
+  mutate(HYPOTENSION_DX = as.numeric(str_detect(Code, 'I95$'))) %>%
+  mutate(HF_DX = as.numeric(str_detect(Code, 'I110|I12$|I13$|I50[0-9]'))) %>%
+  mutate(HTN_URG_DX = as.numeric(str_detect(Code, 'E16'))) %>%
+  mutate(MI_DX = as.numeric(str_detect(Code, 'I21$|I2[1-2][0-9]|I252'))) %>%
+  mutate(AF_DX = as.numeric(str_detect(Code, 'I48$'))) %>%
+  mutate(RHEUMATIC_HD_DX = as.numeric(str_detect(Code, 'I0[7-9]'))) %>%
+  mutate(CARDIAC_STENOSIS_DX = as.numeric(str_detect(Code, 'I34$|I3[4-6][0-9]|I7[0-8]'))) %>%
+  mutate(INFLAMMATORY_HD_DX = as.numeric(str_detect(Code, 'I34$|I3[2-3][0-9]|I3[2-3][0-9][0-9]|I3[8-9]$|I4[0-9]$'))) %>%
+  mutate(CARDIOMYOPATHY_DX = as.numeric(str_detect(Code, 'I4[2-3][0-9]|I44[0-3]'))) %>%
+  mutate(CONDUCTION_BLOCK_DX = as.numeric(str_detect(Code, 'I44[0-9]|I45[0-5]'))) %>%
+  mutate(LONG_QT_DX = as.numeric(str_detect(Code, 'I458'))) %>%
+  mutate(TACHYARRHYTHMIA_DX = as.numeric(str_detect(Code, 'I47|I49[0-4]'))) %>%
+  mutate(VENOUS_INSUFFICIENCY_DX = as.numeric(str_detect(Code, 'I886[8-9]|I867[0-8]'))) %>%
+  mutate(NICOTINE_DEP_DX = as.numeric(str_detect(Code, 'Z87891'))) %>%
+  mutate(DNR_DX = as.numeric(str_detect(Code, 'Z66$'))) %>%
+  mutate(OUTPATIENT_DRUGS_DX = as.numeric(str_detect(Code, 'Z87899'))) %>%
+  mutate(ANTIBIOTIC_RESISTANCE_DX = as.numeric(str_detect(Code, 'Z16$|Z16[0-3]|Z16[0-3]0-9]'))) %>%
+  mutate(PALLIATIVE_CARE_DX = as.numeric(str_detect(Code, 'Z515'))) %>%
+  mutate(HOMELESS_DX = as.numeric(str_detect(Code, 'Z59'))) %>%
+  mutate(ANTICOAG_DT_DX = as.numeric(str_detect(Code, 'Z790[1-2]'))) %>%
+  mutate(INSULIN_DT_DX = as.numeric(str_detect(Code, 'Z794'))) %>%
+  mutate(CORTICOSTEROID_DT_DX = as.numeric(str_detect(Code, 'Z795[1-2]'))) %>%
+  mutate(ORAL_DM_DT_DX = as.numeric(str_detect(Code, 'Z7984'))) %>%
+  mutate(OPIOID_DT_DX = as.numeric(str_detect(Code, 'Z79891'))) %>%
+  mutate(FAMILY_NEOPLASIA_DX = as.numeric(str_detect(Code, 'Z80[0-9]'))) %>%
+  mutate(FAMILY_HD_DX = as.numeric(str_detect(Code, 'Z82[3-4]'))) %>%
+  mutate(FAMILY_DM_DX = as.numeric(str_detect(Code, 'Z83'))) %>%
+  mutate(PERSONAL_NEOPLASIA_DX = as.numeric(str_detect(Code, 'Z85|Z8603'))) %>%
+  mutate(PERSONAL_TIA_DX = as.numeric(str_detect(Code, 'Z8672'))) %>%
+  mutate(PERSONAL_THROMBOSIS_DX = as.numeric(str_detect(Code, 'Z86711|Z86718'))) %>%
+  mutate(DRUG_ALLERGY_DX = as.numeric(str_detect(Code, 'Z87892|Z88[0-9]'))) %>%
+  mutate(FOOD_ALLERGY_DX = as.numeric(str_detect(Code, 'Z910[1-2]'))) %>%
+  mutate(OTHER_ALLERGY_DX = as.numeric(str_detect(Code, 'Z910[3-9]'))) %>%
+  mutate(MED_NONADHERENCE_DX = as.numeric(str_detect(Code, 'Z9114'))) %>%
+  mutate(TX_NONCOMPLIANCE_DX = as.numeric(str_detect(Code, 'Z911[5-9]'))) %>%
+  mutate(AMPUTATION_DX = as.numeric(str_detect(Code, 'Z8901[1-9]|Z890[2-9][0-9]'))) %>%
+  mutate(CHEMOTHERAPY_DX = as.numeric(str_detect(Code, 'Z922|Z923'))) %>%
+  mutate(OSTOMY_DX = as.numeric(str_detect(Code, 'Z93$'))) %>%
+  mutate(TRANSPLANT_DX = as.numeric(str_detect(Code, 'Z94$'))) %>%
+  mutate(PROSTHESIS_DX = as.numeric(str_detect(Code, 'Z9[5-7]')))
+
+tdx_group <- tdx_plot %>%
+  select(-Code) %>%
+  group_by(KEY) %>%
+  summarize_each(funs(sum))
+
+```
+
+
+```{R, proc-plot}
+tproc_plot <- core_csv %>% #summarize the different diagnoses (including non-ade related ones)
+  dplyr:: select(KEY, I10_PR1:I10_PR25) %>%
+  gather(orig_col, Code, c(I10_PR1:I10_PR25),factor_key = TRUE ) %>%
+  select(-orig_col) %>%
+  drop_na() %>%
+  inner_join(i10_procedure, by = c('Code' = 'ICD.10.PCS.CODE')) %>%
+  select(-PROCEDURE.CLASS, -PROCEDURE.CLASS.NAME)
+ 
+tproc_plot <- tproc_plot %>%
+  mutate(STEM_CELL_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Stem Cell'))) %>%
+    mutate(RBC_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Transfusion of Nonautologous Red'))) %>%
+    mutate(TRANSFUS_STEM_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Transfusion of Nonautologous Platelets'))) %>%
+    mutate(ALB_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Transfusion of Nonautologous Serum Albumin'))) %>%
+    mutate(PLASMA_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Transfusion of Nonautologous Frozen Plasma'))) %>%
+    mutate(INFUSION_DEVICE_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Insertion of Infusion Device'))) %>%
+    mutate(DIALYSIS_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Performance of Urinary Filtration'))) %>%
+    mutate(CARDIAC_OUTPUT_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Performance of Cardiac Output'))) %>%
+    mutate(CARDIAC_PACING_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Performance of Cardiac Pacing'))) %>%
+    mutate(ANESTHETIC_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Introduction of Anesthetic Agent'))) %>%
+    mutate(ANTINEOPLASTIC_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Introduction of Antineoplastic|Introduction of Other Antineoplastic'))) %>%
+    mutate(ELECTROLYTIC_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Introduction of Electrolytic'))) %>%
+    mutate(HORMONE_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Introduction of Hormone'))) %>%
+    mutate(ENTERAL_NUTRITION_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Introduction of Nutritional Substance into Central|Introduction of Nutritional Substance into Peripheral'))) %>%
+    mutate(PARENTERAL_NUTRITION_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Introduction of Nutritional Substance into Lower|Introduction of Nutritional Substance into Upper'))) %>%
+    mutate(RESPIRATORY_TX_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Introduction of Other Therapeutic Substance into Respiratory'))) %>%
+    mutate(VASOPRESSOR_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Introduction of Vasopressor'))) %>%
+    mutate(ANALGESIC_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Introduction of Analgesics'))) %>%
+    mutate(VAX_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Introduction of Serum Toxoid'))) %>%
+    mutate(ANTIINFECTIVE_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Introduction of Anti-infective'))) %>%
+    mutate(RESP_VENTILATION_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Respiratory Ventilation'))) %>%
+    mutate(ENDOTRACHEAL_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Endotracheal'))) %>%
+    mutate(ULTRASOUND_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Ultrasonography'))) %>%
+    mutate(DRAINAINGE_PERITON_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Drainage of Peritoneal'))) %>%
+    mutate(DRAINAGE_SPINAL_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Drainage of Spinal'))) %>%
+    mutate(DRINAGE_BLADDER_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Drainage of Bladder'))) %>%
+    mutate(DRAINAGE_LUNG_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Drainage of Right|Drainage of Left'))) %>%
+    mutate(DRAINAGE_STOMACH_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Drainage of Stomach'))) %>%
+    mutate(DRAINAGE_AMNION_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Drainage of Amniotic'))) %>%
+    mutate(CARDIAC_ASSIST_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Assistance with Cardiac'))) %>%
+    mutate(CARDIAC_MEASUREMENT_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Measurement of Cardiac'))) %>%
+    mutate(MONITORING_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Monitoring of|Insertion of Monitoring'))) %>%
+    mutate(CARDIAC_PERFORMANCE_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Performance of Cardiac'))) %>%
+    mutate(CARDIAC_RHYTHM_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Restoration of Cardiac Rhythm'))) %>%
+    mutate(DETOX_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Detoxification Services'))) %>%
+    mutate(INSPECTION_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Inspection of'))) %>%
+    mutate(EXTRACTION_ILIAC_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Extraction of Iliac'))) %>%
+    mutate(EXTRACTION_OBGYN_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Extraction of Products|Delivery of Products'))) %>%
+    mutate(CONTROL_BLEEDING_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Control Bleeding'))) %>%
+    mutate(EXCISION_CARDIAC_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Excision of') & str_detect(Code, '02B'))) %>%
+    mutate(EXCISION_CIRCULATORY_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Excision of') & str_detect(Code, '0[3-6]B'))) %>%
+    mutate(EXCISION_GI_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Excision of') & str_detect(Code, '0DB'))) %>%
+    mutate(FLUOROSCOPY_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Fluoroscopy'))) %>%
+    mutate(CT_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Computerized Tomography'))) %>%
+    mutate(REMOVAL_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Removal'))) %>%
+    mutate(CORONARY_BYPASS_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Bypass Coronary'))) %>%
+    mutate(RESECTION_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Resection of'))) %>%
+    mutate(REPLACEMENT_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Replacement of'))) %>%
+    mutate(EXTIRPATION_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Extirpation of'))) %>%
+    mutate(FUSION_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Fusion of'))) %>%
+    mutate(OCCLUSION_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Occlusion of'))) %>%
+    mutate(REPAIR_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Repair'))) %>%
+    mutate(MRI_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Magnetic')))
+
+
+tproc_group <- tproc_plot %>%
+  select(-Code, -ICD.10.PCS.CODE.DESCRIPTION) %>%
+  group_by(KEY) %>%
+  summarize_each(funs(sum))
+
+
+
+```
+
+
+```{r, county-data}
+calculate_mode <- function (x) {
+  ux <- na.omit(unique(x))
+  tab <- tabulate(match(x, ux)); ux[tab == max(tab)]
+}
+
+core_csv$PSTCO[core_csv$HOSP_NPI == 1598703019] <- as.factor(36061)
+core_csv$PSTCO[core_csv$HOSP_NPI == 1700887411] <- as.factor(36061)
+
+PSTCO_modes <- core_csv %>%
+  group_by(HOSP_NPI) %>%
+  summarize(PSTCO_mode = calculate_mode(PSTCO)) %>%
+  drop_na() %>%
+  arrange(desc(as.numeric(HOSP_NPI))) %>%
+  filter(!row_number() %in% c(2,7,154,200)) #duplciate modes
+
+
+
+core_csv <- core_csv %>%
+  left_join(PSTCO_modes, c('HOSP_NPI' = 'HOSP_NPI'), copy = F)
+
+core_csv$PSTCO[is.na(core_csv$PSTCO)] <- core_csv$PSTCO_mode[is.na(core_csv$PSTCO)]
+core_csv <- core_csv %>%
+  filter(!is.na(PSTCO))
+
+
+FIPS_join <- NY_FIPS %>%
+  select(County.Name, County.FIPS) %>%
+  unique() %>%
+  filter(County.Name != "New York")
+
+
+
+core_csv <- core_csv %>%
+  select(-PSTCO_mode) %>%
+  left_join(FIPS_join, c('PSTCO' = 'County.FIPS'))
+
+
+```
+
+
+
+```{R,rm-vars}
+
+core_csv <- core_csv %>%
+  select(-AGEDAY, -AGEMONTH,-BWT,-DRGVER,-HISPANIC_X,-HOSPST) %>%
+  select(-DaysToEvent, -DRG,-DRG_NoPOA, -HOSP_NPI, -I10_PROCTYPE, -POA_Disch_Edit1, -POA_Disch_Edit2, -POA_Hosp_Edit1, -POA_Hosp_Edit2, -POA_Hosp_Edit3, -POA_Hosp_Edit3_Value, -PSTCO, -PSTCO2, -VisitLink, -ZIP, -ZIP3) %>%
+  select(-AYEAR, -BYEAR, -DSHOSPID, -MDNUM1_R, -MDNUM2_R) %>%
+  select( -(DXPOA1:DXPOA35)) %>% 
+  select(-(I10_DX_Admitting:I10_DX35)) %>%
+  select(-(I10_PR1:I10_PR25)) %>%
+  select(-LOS, -PAY3, -PAY3_X,  -RACE_EDIT, -RACE_X, -TOTCHG) %>%
+  select(-(PRDAY1:PRDAY25)) %>%
+  select(-(PRMONTH1:PRYEAR25))
+
+```
+
+
+```{R, REFACTOR-MONTHS}
+library(forcats)
+
+core_csv$AMONTH <- as.factor(core_csv$AMONTH)
+core_csv$AMONTH <- fct_explicit_na(core_csv$AMONTH)
+
+core_csv$BMONTH <- as.factor(core_csv$BMONTH)
+core_csv$BMONTH <- fct_explicit_na(core_csv$BMONTH)
+
+
+core_csv$DMONTH <- as.factor(core_csv$DMONTH)
+core_csv$DMONTH <- fct_explicit_na(core_csv$DMONTH)
+
+
+
+```
+
+```{r, join-dx-proc}
+
+core_csv <- core_csv %>%
+  left_join(tdx_group, c("KEY" = 'KEY')) %>%
+  left_join(tproc_group, c('KEY' = 'KEY')) %>%
+  replace(is.na(.), 0)
+
+
+```
+
+
+
+
+```{r, bp-hr-factors}
+core_csv %>%
+  filter(is.na(REPLACEMENT_PROC))
+
+core_csv <- core_csv %>%
+  mutate(HR_cat = case_when(HEART_RATE_X > 110 ~ "Tachycardic",
+                            HEART_RATE_X < 60 ~ "Bradycardic", 
+                            HEART_RATE_X >= 60 & HEART_RATE_X <= 110 ~ "Normal"))
+
+
+core_csv$HR_cat <- replace_na(core_csv$HR_cat, "Missing")
+core_csv$HR_cat <- as.factor(core_csv$HR_cat)
+
+
+core_csv <- core_csv %>%
+  mutate(BP_cat = case_when(BP_SYSTOLIC_X < 90 & BP_DIASTOLIC_X < 60 ~ "Hypotensive",
+                            (BP_SYSTOLIC_X >= 90 & BP_DIASTOLIC_X >= 60) & (BP_SYSTOLIC_X >= 129 & BP_DIASTOLIC_X > 79)  ~ "Normal",
+                            (BP_SYSTOLIC_X >= 130 | BP_DIASTOLIC_X >= 80)  & (BP_SYSTOLIC_X <= 139 & BP_DIASTOLIC_X <= 89)~ "Stage I Hypertension",
+                            (BP_SYSTOLIC_X >= 140 | BP_DIASTOLIC_X >= 90) & (BP_SYSTOLIC_X <= 179 & BP_DIASTOLIC_X <= 109) ~ "Stage II Hypertension",
+                            BP_SYSTOLIC_X >= 180 | BP_DIASTOLIC_X >= 110 ~ "Hypertensive Urgency"))
+
+core_csv$BP_cat <- replace_na(core_csv$BP_cat, "Missing")
+core_csv$BP_cat <- as.factor(core_csv$BP_cat)
+
+core_csv <- core_csv %>%
+  select(-BP_DIASTOLIC_X,-BP_SYSTOLIC_X, -HEART_RATE_X)
+
+```
+
+
+

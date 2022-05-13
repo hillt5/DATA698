@@ -1,0 +1,314 @@
+---
+title: "Machine Learning Models"
+output: html_document
+date: '2022-05-06'
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(ROSE)
+library(caret)
+```
+
+
+```{r, load-csv}
+core_df <- read_csv('E:/Grad School/core_features', col_types = 'nnnffnnnnfffffffffncccccccccccccccccccccccccccccccccccnncccccccccccccccccccccccccnnfffnfnfffffffffffffffnffnffffffl', col_names = TRUE)
+
+
+core_df <- core_df[,-c(1,87)]
+
+
+
+```
+
+
+```{r, tdx-dummies}
+
+tdx_plot <- core_df %>% #summarize the different diagnoses (including non-ade related ones)
+  dplyr:: select(KEY, I10_DX_Admitting:I10_DX35) %>%
+  gather(orig_col, Code, c(I10_DX_Admitting,I10_DX1:I10_DX35),factor_key = TRUE ) %>%
+  select(-orig_col) %>%
+  drop_na()
+
+
+
+
+tdx_plot <- tdx_plot %>%
+  mutate(INFECTIOUS_DX = as.numeric(str_detect(Code, '^B|^A'))) %>%
+  mutate(NEOPLASMS_DX = as.numeric(str_detect(Code, '^C|^D[0-4]'))) %>%
+  mutate(BLOOD_DX = as.numeric(str_detect(Code, '^D[5-9]'))) %>%
+  mutate(ENDOCRINE_DX = as.numeric(str_detect(Code, '^E'))) %>%
+  mutate(MENTAL_DX = as.numeric(str_detect(Code, '^F'))) %>%
+  mutate(NERVOUS_DX = as.numeric(str_detect(Code, '^G'))) %>% 
+  mutate(EYE_DX = as.numeric(str_detect(Code, '^H[0-5]'))) %>%
+  mutate(EAR_DX = as.numeric(str_detect(Code, '^H[6-9]'))) %>%
+  mutate(CIRCULATORY = as.numeric(str_detect(Code, '^I'))) %>%
+  mutate(RESPIRATORY_DX = as.numeric(str_detect(Code, '^J'))) %>%
+  mutate(DIGESTIVE_DX = as.numeric(str_detect(Code, '^K'))) %>%
+  mutate(SKIN_DX = as.numeric(str_detect(Code, '^L'))) %>% 
+  mutate(MUSC_DX = as.numeric(str_detect(Code, '^M'))) %>%
+  mutate(GU_DX = as.numeric(str_detect(Code, '^N'))) %>%
+  mutate(OBGYN_DX = as.numeric(str_detect(Code, '^O|^P'))) %>%
+  mutate(CONGENITAL_DX = as.numeric(str_detect(Code, '^Q'))) %>%
+  mutate(LAB_DX = as.numeric(str_detect(Code, '^R'))) %>%
+  mutate(INJ_DX = as.numeric(str_detect(Code, '^S|^T'))) %>%
+  mutate(EXTERNAL_DX = as.numeric(str_detect(Code, '^V'))) %>%
+  mutate(FACTORS_DX = as.numeric(str_detect(Code, '^Z'))) 
+
+
+
+tdx_group <- tdx_plot %>%
+  select(-Code) %>%
+  group_by(KEY) %>%
+  summarize_each(funs(sum))
+
+tdx_group <- tdx_group %>%
+  filter(CIRCULATORY < 100)
+
+
+
+rm(tdx_plot)
+
+core_df <- core_df %>%
+  left_join(tdx_group, c('KEY' = 'KEY'))
+
+rm(tdx_group)
+
+core_df <- core_df %>%
+    dplyr::select(-(I10_DX_Admitting:I10_DX35))
+
+```
+
+## Procedure Dummies
+```{R, proc-plot}
+
+i10_procedure <- read.csv("i10_procedure.csv", stringsAsFactors = TRUE) #icd 10 procedure codes
+
+
+tproc_plot <- core_df %>% #summarize the different diagnoses (including non-ade related ones)
+  dplyr:: select(KEY, I10_PR1:I10_PR25) %>%
+  gather(orig_col, Code, c(I10_PR1:I10_PR25),factor_key = TRUE ) %>%
+  select(-orig_col) %>%
+  drop_na() %>%
+  inner_join(i10_procedure, by = c('Code' = 'ICD.10.PCS.CODE')) %>%
+  select(-PROCEDURE.CLASS, -PROCEDURE.CLASS.NAME)
+
+rm(i10_procedure)
+
+
+#count instances of each procedure
+
+tproc_plot <- tproc_plot %>%
+  mutate(STEM_CELL_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Stem Cell'))) %>%
+    mutate(RBC_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Transfusion of Nonautologous Red'))) %>%
+    mutate(TRANSFUS_STEM_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Transfusion of Nonautologous Platelets'))) %>%
+    mutate(ALB_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Transfusion of Nonautologous Serum Albumin'))) %>%
+    mutate(PLASMA_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Transfusion of Nonautologous Frozen Plasma'))) %>%
+    mutate(INFUSION_DEVICE_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Insertion of Infusion Device'))) %>%
+    mutate(DIALYSIS_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Performance of Urinary Filtration'))) %>%
+    mutate(CARDIAC_OUTPUT_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Performance of Cardiac Output'))) %>%
+    mutate(CARDIAC_PACING_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Performance of Cardiac Pacing'))) %>%
+    mutate(ANESTHETIC_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Introduction of Anesthetic Agent'))) %>%
+    mutate(ANTINEOPLASTIC_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Introduction of Antineoplastic|Introduction of Other Antineoplastic'))) %>%
+    mutate(ELECTROLYTIC_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Introduction of Electrolytic'))) %>%
+    mutate(HORMONE_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Introduction of Hormone'))) %>%
+    mutate(ENTERAL_NUTRITION_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Introduction of Nutritional Substance into Central|Introduction of Nutritional Substance into Peripheral'))) %>%
+    mutate(PARENTERAL_NUTRITION_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Introduction of Nutritional Substance into Lower|Introduction of Nutritional Substance into Upper'))) %>%
+    mutate(RESPIRATORY_TX_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Introduction of Other Therapeutic Substance into Respiratory'))) %>%
+    mutate(VASOPRESSOR_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Introduction of Vasopressor'))) %>%
+    mutate(ANALGESIC_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Introduction of Analgesics'))) %>%
+    mutate(VAX_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Introduction of Serum Toxoid'))) %>%
+    mutate(ANTIINFECTIVE_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Introduction of&Anti-infective'))) %>%
+    mutate(RESP_VENTILATION_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Respiratory Ventilation'))) %>%
+    mutate(ENDOTRACHEAL_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Endotracheal'))) %>%
+    mutate(ULTRASOUND_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Ultrasonography'))) %>%
+    mutate(DRAINAINGE_PERITON_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Drainage of Peritoneal'))) %>%
+    mutate(DRAINAGE_SPINAL_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Drainage of Spinal'))) %>%
+    mutate(DRINAGE_BLADDER_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Drainage of Bladder'))) %>%
+    mutate(DRAINAGE_LUNG_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Drainage of Right|Drainage of Left'))) %>%
+    mutate(DRAINAGE_STOMACH_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Drainage of Stomach'))) %>%
+    mutate(DRAINAGE_AMNION_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Drainage of Amniotic'))) %>%
+    mutate(CARDIAC_ASSIST_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Assistance with Cardiac'))) %>%
+    mutate(CARDIAC_MEASUREMENT_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Measurement of Cardiac'))) %>%
+    mutate(MONITORING_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Monitoring of|Insertion of Monitoring'))) %>%
+    mutate(CARDIAC_PERFORMANCE_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Performance of Cardiac'))) %>%
+    mutate(CARDIAC_RHYTHM_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Restoration of Cardiac Rhythm'))) %>%
+    mutate(DETOX_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Detoxification Services'))) %>%
+    mutate(INSPECTION_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Inspection of'))) %>%
+    mutate(EXTRACTION_ILIAC_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Extraction of Iliac'))) %>%
+    mutate(EXTRACTION_OBGYN_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Extraction of Products|Delivery of Products'))) %>%
+    mutate(CONTROL_BLEEDING_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Control Bleeding'))) %>%
+    mutate(EXCISION_CARDIAC_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Excision of') & str_detect(Code, '02B'))) %>%
+    mutate(EXCISION_CIRCULATORY_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Excision of') & str_detect(Code, '0[3-6]B'))) %>%
+    mutate(EXCISION_GI_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Excision of') & str_detect(Code, '0DB'))) %>%
+    mutate(FLUOROSCOPY_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Fluoroscopy'))) %>%
+    mutate(CT_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Computerized Tomography'))) %>%
+    mutate(REMOVAL_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Removal'))) %>%
+    mutate(CORONARY_BYPASS_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Bypass Coronary'))) %>%
+    mutate(RESECTION_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Resection of'))) %>%
+    mutate(REPLACEMENT_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Replacement of'))) %>%
+    mutate(EXTIRPATION_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Extirpation of'))) %>%
+    mutate(FUSION_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Fusion of'))) %>%
+    mutate(OCCLUSION_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Occlusion of'))) %>%
+    mutate(REPAIR_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Repair'))) %>%
+    mutate(MRI_PROC = as.numeric(str_detect(ICD.10.PCS.CODE.DESCRIPTION, 'Magnetic')))
+
+
+tproc_group <- tproc_plot %>%
+  select(-ICD.10.PCS.CODE.DESCRIPTION, -Code) %>%
+  group_by(KEY) %>% #group by key
+  summarise_all(funs(sum))
+
+
+
+tproc_group <- tproc_group %>%
+  filter(STEM_CELL_PROC < 5) #grand total column removed
+
+rm(tproc_plot)
+
+
+core_df <- core_df %>%
+  left_join(tproc_group, c('KEY' = 'KEY')) 
+
+rm(tproc_group)
+
+core_df <- core_df %>%
+  mutate_if(is.numeric, ~replace_na(.,0))
+
+```
+
+## Join to proc and dx plots
+```{r, join-dx-proc}
+core_df <- core_df %>%
+    dplyr::select(-(I10_PR1:I10_PR25))
+
+
+```
+
+```{r, ny-region}
+
+core_df <- core_df %>%
+  mutate(NY_region = case_when(County.Name %in% c('Albany', 'Columbia', 'Greene', 'Rensselaer', 'Saratoga', 'Schenectady', 'Warren', 'Washington') ~ 'Capital Region',
+         County.Name %in% c('Cayuga', 'Cortland', 'Madison', 'Onondaga', 'Oswego') ~ 'Central New York', 
+         County.Name %in% c('Genesee', 'Livingston', 'Monroe', 'Ontario', 'Orleans', 'Seneca', 'Wayne', 'Wyoming', 'Yates') ~ 'Finger Lakes',
+         County.Name %in% c('Nassau', 'Suffolk') ~ 'Long Island',
+         County.Name %in% c('Dutchess', 'Orange', 'Putnam', 'Rockland', 'Sullivan', 'Ulster', 'Westchester') ~ 'Mid_Hudson',
+         County.Name %in% c('Fulton', 'Herkimer', 'Montgomery', 'Oneida', 'Otsego', 'Schoharie') ~
+           'Mohawk Valley',
+         County.Name %in% c('Bronx', 'Kings', 'New York City', 'Queens', 'Richmond') ~ 'New York City',
+         County.Name %in% c('Clinton', 'Essex', 'Franklin', 'Hamilton', 'Jefferson', 'Lewis', 'St Lawrence') ~ 'North Country',
+         County.Name %in% c('Broome', 'Chemung', 'Chenango', 'Delaware', 'Schuyler', 'Steuben', 'Tioga', 'Tompkins') ~ 'Southern Tier',
+         County.Name %in% c('Allegany', 'Cattaraugus', 'Chautauqua',  'Erie', 'Niagara') ~ 'Western New York'))
+
+```
+
+
+
+
+
+
+```{r, undersample}
+core_df <- core_df %>%
+  select(-KEY)
+
+core_df$has_ade <- as.numeric(core_df$has_ade)
+
+core_df <- core_df %>%
+  select(-HOSP_NPI) %>%
+  select(-DQTR, -DISPUB04) %>%
+  select(-DISPUNIFORM, -Homeless, -BLOOD, -PAY1_X, -PAY2_X) %>%
+  select(-PL_UIC, -PL_RUCC, -County.Name, -PL_UR_CAT4, -PointOfOriginUB04, -PSTATE, -MDC_NoPOA, -TRAN_IN) %>%
+  filter(AMONTH != '(Missing)') %>%
+  select(-TRAN_OUT, -YEAR, -PL_CBSA) %>%
+  filter(ZIPINC_QRTL != '')
+
+
+```
+
+```{r,train-test-split}
+library(caTools)
+
+sample <- sample.split(1:nrow(core_df), SplitRatio = 0.9) #train test split
+train <- subset(core_df, sample == TRUE)
+test_set <- subset(core_df, sample == FALSE)
+
+training_set <- ovun.sample(has_ade~., train, method = 'both', N = 100000) #ROSE over/undersampling training data
+
+
+rm(sample)
+rm(core_df)
+rm(train)
+rm(usample1)
+```
+
+
+
+```{r, logistic-performance}
+
+control <- trainControl(method = 'cv', number = 5, allowParallel = TRUE)
+
+glm_fit <- train(as.factor(has_ade)~., method = 'multinom', data = training_set, trControl = control, na.action = na.exclude)
+
+summary(glm_fit)
+
+colSums(is.na(test_set))
+
+test_set <- read.csv('test_vals')
+test_set <- test_set %>%
+  select(-X, -X.1) %>%
+  filter(!is.na(HISPANIC), !is.na(ATYPE), !is.na(FEMALE), !is.na(PAY1))
+
+glm_pred <- predict(glm_fit, test_set %>% select(-has_ade), na.action = na.exclude)
+
+
+table(test_set$has_ade, as.numeric(glm_pred) >= InformationValue::optimalCutoff(as.numeric(test_set$has_ade), as.numeric(glm_pred)))
+
+```
+```{r, logistic-performance}
+
+
+sgb_fit <- train(as.factor(has_ade)~., method = 'gbm', data = training_set, trControl = control, na.action = na.exclude)
+
+summary(sgb_fit)
+
+sgb_pred <- predict(sgb_fit, test_set %>% select(-has_ade))
+
+sum(test_set$has_ade == 1)
+
+table(test_set$has_ade, as.numeric(sgb_pred) >= InformationValue::optimalCutoff(as.numeric(test_set$has_ade), as.numeric(sgb_pred)))
+glm_pred %>% View()
+```
+
+
+
+```{r, logistic-performance}
+
+
+rf_fit <- train(as.factor(has_ade)~., method = 'rf', metric = "Accuracy", tuneLength= 10, data = training_set, trControl = control, na.action = na.exclude)
+
+summary(rf_fit)
+
+rf_pred <- predict(rf_fit, test_set %>% select(-has_ade), na.action = na.exclude)
+
+table(test_set$has_ade, as.numeric(rf_pred) >= InformationValue::optimalCutoff(as.numeric(test_set$has_ade), as.numeric(rf_pred)))
+
+```
+
+
+
+```{r, logistic-performance}
+
+nn_fit <- train(as.factor(has_ade)~., method = 'nnet', metric = "Accuracy", tuneLength= 10, data = training_set, trControl = control, na.action = na.exclude)
+
+summary(nn_fit$perfNames)
+
+nn_pred <- predict(nn_fit, test_set %>% select(-has_ade), na.action = na.exclude)
+
+table(test_set$has_ade, as.numeric(nn_pred) >= InformationValue::optimalCutoff(as.numeric(test_set$has_ade), as.numeric(nn_pred)))
+
+```
