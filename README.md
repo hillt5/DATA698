@@ -1,5 +1,5 @@
-# DATA698
-Final project
+# DATA698: Analytics Master's Research Project
+Final project: ADVERSE DRUG EVENTS IN NEW YORK HOSPITALS: PREDICTION AND ASSOCIATED COSTS
 
 **DISCLAIMER**
 
