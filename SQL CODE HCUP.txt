@@ -1,5 +1,5 @@
 
-DROP TABLE IF EXISTS charges;
+DROP TABLE IF EXISTS charges; ####Create charge file
 
 CREATE TABLE charges (
 CHARGE DECIMAL(13,2),
@@ -19,7 +19,7 @@ IGNORE 1 ROWS;
 DROP TABLE IF EXISTS revcodes;
 
 
-CREATE TABLE revcodes (
+CREATE TABLE revcodes (  ###Label revenue codes
 CHARGE_NAME VARCHAR(52),
 ID char(4),
 SUBTYPE varchar(16)
@@ -34,7 +34,7 @@ LINES TERMINATED BY '\n'
 IGNORE 1 ROWS;
 
 
-DROP TABLE IF EXISTS core;
+DROP TABLE IF EXISTS core;   ###Create CORE file
 
 
   CREATE TABLE core (
@@ -306,7 +306,7 @@ ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
 IGNORE 1 ROWS;
 
-DROP TABLE IF EXISTS icd;
+DROP TABLE IF EXISTS icd;  ### Load file with ADE-related ICD codes
 
 
   CREATE TABLE icd (
@@ -316,7 +316,7 @@ DROP TABLE IF EXISTS icd;
 
 
 
-LOAD DATA INFILE 'E:/Grad School/icd_csv.csv' 
+LOAD DATA INFILE 'E:/Grad School/icd_csv.csv'
 INTO TABLE icd 
 FIELDS TERMINATED BY ','
 ENCLOSED BY '"'
@@ -324,7 +324,7 @@ LINES TERMINATED BY '\n'
 IGNORE 1 ROWS;
 
 
-SELECT * FROM core
+SELECT * FROM core  ### This final query is how I generated a .csv with observations having at least one ADE
 JOIN icd
 ON icd.ICD_Code = core.I10_DX1
 OR icd.ICD_Code = core.I10_DX2
