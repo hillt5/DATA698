@@ -28,6 +28,7 @@ output:
 library(tidyverse)
 library(dplyr)
 library(ggplot2)
+library(scales)
 
 
 ```
@@ -40,83 +41,31 @@ ade_flag <- read_csv('core_paper_vars')
 ```
 
 
+```{r, women, echo=FALSE, results=FALSE}
+
+###average age 
+ade_flag %>%
+	summarize(avg_age = mean((AGE), na.rm = TRUE))
+
+ade_flag %>%
+  filter(has_ade ==1) %>%
+	summarize(avg_age = mean((AGE), na.rm = TRUE))
+```
 
 
-```{r, top-10-ade}
+```{r, women, echo=FALSE, results=FALSE}
 
-icd <- read.csv('https://raw.githubusercontent.com/k4m1113/ICD-10-CSV/master/codes.csv', header =  FALSE) #icd10 diagnosis codes
+###-Proportion of women 
+ade_flag %>%
+	summarize(avg_female = mean((FEMALE == 1), na.rm = TRUE))
 
-ade_counts <- ade_flag %>%
-  filter(has_ade == 1) %>%
-  group_by(Code, Description) %>%
-  summarize(n_icd = n()) %>%
-  left_join(icd, c('Code' = 'V3')) %>%
-  arrange(desc(n_icd)) %>%
-  mutate(Description = fct_relevel(Description, c('Category A1','Category A2', 'Category B2', 'Category C')))
-
-ade_counts %>%
-  head(10) %>%
-  ggplot(aes(x = fct_reorder(V5, n_icd))) +
-  geom_col(aes(y = n_icd/1000, fill = Description)) + 
-  scale_x_discrete(name = 'ICD Description', labels = function(x) str_wrap(str_replace_all(x, "foo" , " "),
-                                                 width = 40)) +
-  theme(legend.position = c(0.75,0.25)) +
-  labs(title = 'Top 10 Most Common ADE\'s, 2018') +
-  scale_y_continuous(name = 'Cases, in thousands') +
-  coord_flip() 
+ade_flag %>%
+  filter(has_ade ==1) %>%
+  summarize(avg_female = mean((FEMALE == 1), na.rm = TRUE))
 
 ```
 
 
-```{r, top-10-ade-cat-ab}
-
-ade_counts2 <- ade_flag %>%
-  filter(has_ade == 1) %>%
-  filter(Description != 'Category C') %>%
-  group_by(Code, Description) %>%
-  summarize(n_icd = n()) %>%
-  left_join(icd, c('Code' = 'V3')) %>%
-  arrange(desc(n_icd)) %>%
-  mutate(Description = fct_relevel(Description, c('Category A1','Category A2', 'Category B2', 'Category C')))
-
-ade_counts2 %>%
-  head(10) %>%
-  ggplot(aes(x = fct_reorder(V5, n_icd))) +
-  geom_col(aes(y = n_icd/1000, fill = Description)) + 
-  scale_x_discrete(name = 'ICD Description', labels = function(x) str_wrap(str_replace_all(x, "foo" , " "),
-                                                 width = 40)) +
-  theme(legend.position = c(0.75,0.25)) +
-  labs(title = 'Most Common Category \'A\' drug reactions') +
-  scale_y_continuous(name = 'Cases, in thousands') +
-  coord_flip() 
-
-ade_counts2 %>%
-  filter(Description == 'Category B2') %>%
-  head(10) %>%
-  ggplot(aes(x = fct_reorder(V5, n_icd))) +
-  geom_col(aes(y = n_icd)) + 
-  scale_x_discrete(name = 'ICD Description', labels = function(x) str_wrap(str_replace_all(x, "foo" , " "),
-                                                 width = 35)) +
-  labs(title = 'Most Common Category \'B\' drug reactions') +
-  scale_y_continuous(name = 'Cases') +
-  coord_flip() 
-
-
-
-ade_counts %>%
-  filter(Description == 'Category C') %>%
-  head(3) %>%
-  ggplot(aes(x = fct_reorder(V5, n_icd))) +
-  geom_col(aes(y = n_icd/1000)) + 
-  scale_x_discrete(name = 'ICD Description', labels = function(x) str_wrap(str_replace_all(x, "foo" , " "),
-                                                 width = 35)) +
-  labs(title = 'Most Common Category \'C\' drug reactions') +
-  scale_y_continuous(name = 'Cases, in thousands') +
-  coord_flip() 
-
-
-
-```
 
 ```{r, women}
 
@@ -127,7 +76,11 @@ ade_flag %>%
 ade_flag %>%
 	summarize(sd_female = sd(as.numeric(FEMALE == 1), na.rm = TRUE))
 ```
-```{r, races}
+
+
+
+
+```{r, races, echo=FALSE, results=FALSE}
 ##-Proportion of races 
 ade_flag %>%
 	mutate(RACE = recode_factor(RACE, `1`= 'White',
@@ -139,9 +92,22 @@ ade_flag %>%
 															`NA` = 'Other/Missing')) %>%
 	group_by(RACE) %>%
 	summarize(PCT_RACE = 100*round(n()/nrow(ade_flag),3))
+
+ade_flag %>%
+  filter(has_ade ==1) %>%
+	mutate(RACE = recode_factor(RACE, `1`= 'White',
+															`2` = 'Black',
+															`3` = 'Hispanic',
+															`4` = 'AAPI',
+															`5` = 'Native American',
+															`6` = 'Other/Missing',
+															`NA` = 'Other/Missing')) %>%
+	group_by(RACE) %>%
+	summarize(PCT_RACE = 100*round(n()/nrow(ade_flag[ade_flag$has_ade ==1,]),3))
+
 ```
 
-```{r, hispanic}
+```{r, hispanic, echo = FALSE,  results = FALSE}
 			
 ##-Proportion Hispanic 
 
@@ -162,147 +128,181 @@ ade_flag %>%
 															`2` = 'Hispanic, Black',
 															`3` = 'Hispanic, Other Race')) %>%
 	group_by(HISPANIC) %>%
-	summarize(PCT_HISPANIC = 100*round(n()/nrow(ade_flag),3))
+	summarize(PCT_HISPANIC = 100*round(n()/nrow(ade_flag[ade_flag$has_ade ==1,]),3))
   
 
-```
-```{r, av-charge}
-##-Average charge  
-ade_flag %>%
-	summarize(avg_charge = mean(TOTCHG_X, na.rm = TRUE))
-
-ggplot(ade_flag, aes(x = TOTCHG_X)) +
-  geom_histogram() +
-  scale_x_continuous(trans = 'log10', labels = scales::dollar_format()) +
-  labs(x = 'Total Charges per Visit, log scale', y = 'Count', title = 'Distribution of Charges, Inpatient Stays')
-
 
 ```
 
-```{r, ed-admits}
+```{r, ed-admits, echo= F, results = F}
 ##-Proportion of ED admissions 
 
 ade_flag %>%
   summarize(PCT_ED = mean(as.numeric(HCUP_ED != 0)))
 	          
 ade_flag %>%
+  filter(has_ade ==1 ) %>%
 	summarize(SD_ED = sd(as.numeric(HCUP_ED != 0)))
 
 ```
-```{r, los}
-##-Average LOS 
 
-ade_flag %>%
-	summarize(AVG_LOS = mean(LOS_X, na.rm = TRUE))
-ade_flag %>%
-  summarize(SD_LOS = sd(LOS_X, na.rm = TRUE))
-
-
-ggplot(ade_flag, aes(x = LOS_X)) +
-  geom_histogram() +
-  scale_x_continuous(trans = 'log10') +
-  labs(x = 'Total Length of Stay, log scale', y = 'Count', title = 'Length of Inpatient Stay')
-
-summary(ade_flag$LOS_X)  
-ade_flag %>%
-  ggplot(aes(x = LOS_X, fill = DIED == 0)) +
-  geom_histogram() +
-  scale_x_continuous(trans = 'log10')
-
-ade_flag %>%
-  filter(LOS_X <= 10) %>%
-  ggplot(aes(x = LOS_X, fill = DIED == 0)) +
-  geom_histogram() +
-  scale_x_discrete()
-hist(ade_flag$LOS_X[ade_flag$LOS_X < 10])
-```	          
-```{r, died}	          	
+     
+```{r, died, echo = F, results = F}	          	
 ##-Proportion who died 
 
 ade_flag %>%
 	summarize(PCT_DIED = mean(DIED, na.rm = TRUE))
 
-ade_flag %>%
-  summarize(sd_died = sd(DIED, na.rm = TRUE))
 
+ade_flag %>%
+  filter(has_ade ==1) %>%
+	summarize(PCT_DIED = mean(DIED, na.rm = TRUE))
 	          
 ```
-```{r, cost-per-day}      
+
+
+```{r, los, ehco = F, results = F}
+##-Average LOS 
+
+
+ade_cost <- ade_flag %>% select(has_ade, LOS_X, TOTCHG_X) 
+ade_cost$LOS_X[ade_cost$LOS_X == 0] <- 1 #change 'zero' length of stay to '1'
+
+ade_cost %>%
+	summarize(AVG_LOS = mean(LOS_X, na.rm = TRUE))
+
+ade_cost %>%
+  filter(has_ade ==1) %>%
+	summarize(AVG_LOS = mean(LOS_X, na.rm = TRUE))
+
+ade_cost %>%
+	summarize(med_los = median(LOS_X, na.rm = TRUE))
+
+ade_cost %>%
+  filter(has_ade ==1) %>%
+summarize(med_los = median(LOS_X, na.rm = TRUE))
+
+
+
+
+```
+
+```{r ndx, echo = FALSE, results = FALSE}
+
+#average number of diagnoses
+ade_flag %>%
+	summarize(avg_ndx = mean(I10_NDX, na.rm = TRUE))
+
+ade_flag %>%
+  filter(has_ade ==1) %>%
+	summarize(avg_ndx = mean(I10_NDX, na.rm = TRUE))
+
+
+
+
+
+```
+
+
+
+```{r npr, echo = FALSE, results = FALSE}
+
+#average number of procedures per admission
+
+
+ade_flag %>%
+	summarize(avg_npr= mean(I10_NPR, na.rm = TRUE))
+
+ade_flag %>%
+  filter(has_ade ==1) %>%
+	summarize(avg_pr = mean(I10_NPR, na.rm = TRUE))
+
+
+
+
+```
+
+
+
+
+```{r, av-charge, echo = F, result = F}
+##-Average charge  
+ade_flag %>%
+	summarize(avg_charge = mean(TOTCHG_X, na.rm = TRUE))
+
+ade_flag %>%
+  filter(has_ade ==1) %>%
+	summarize(avg_charge = mean(TOTCHG_X, na.rm = TRUE))
+
+ade_flag %>%
+	summarize(avg_charge = median(TOTCHG_X, na.rm = TRUE))
+
+ade_flag %>%
+  filter(has_ade ==1) %>%
+	summarize(avg_charge = median(TOTCHG_X, na.rm = TRUE))
+
+
+
+
+```
+
+```{r, cost-per-day, echo = FALSE, results = FALSE}      
 ##-Average cost per day 
-ade_cost <- ade_flag 
-ade_cost$LOS_X[ade_cost$LOS_X == 0] <- 1
 ade_cost <- ade_cost %>%
   filter(!is.na(LOS_X), !is.na(TOTCHG_X)) %>%
 		mutate(cost_per_day = round(TOTCHG_X/LOS_X, 2))
+
 ade_cost %>%
     summarize(avg_cost_per_day = round(mean(cost_per_day, na.rm = TRUE),2))
 
 ade_cost %>%
-		mutate(cost_per_day = round(TOTCHG_X/LOS_X, 2)) %>% 
-		summarize(sd_daily_cost = sd(cost_per_day, na.rm = TRUE))
+  filter(has_ade ==1) %>%
+  summarize(avg_cost_per_day = round(mean(cost_per_day, na.rm = TRUE),2))
+
 
 ade_cost %>%
-  ggplot(aes(x = cost_per_day)) +
-  geom_histogram() +
-  scale_x_continuous(trans = 'log10', labels = scales:: dollar_format()) +
-  labs(x = 'Average cost per day of Hospital Admission, USD', y = 'Count', title = 'Average Cost Per day of Inpatient Visit')
-```
+    summarize(med_cost_per_day = round(median(cost_per_day, na.rm = TRUE),2))
 
-						
-##-Most common procedures 
-##-Map of NY 
-##-Breakdown of Patients by Region 
-##-Bivariate choropleth map of admissions versus ade's
-							
+ade_cost %>%
+  filter(has_ade ==1) %>%
+  summarize(med_cost_per_day = round(median(cost_per_day, na.rm = TRUE),2))
 
-```{r, load-json}
-nycounties <- rgdal::readOGR('https://raw.githubusercontent.com/hillt5/DATA608/main/Final%20Project/gz_2010_us_050_00_20m.json')
-nycounties <- nycounties[nycounties$STATE == 36,]
+
+
+
 ```
 
 
 
-###ade's versus num of admissions
 
-```{r, choropleth-map}
-choropleth_counties <- county_bd_births_0914 %>%
-  mutate(map_color = case_when(
-    ade_per_capita < 6.413 & defects_per_capita < 0.2242 ~ 'Low-Low',
-    births_per_capita < 6.413 & (defects_per_capita > 0.2242 & defects_per_capita < 0.3238) ~ 'Low-Med',
-    births_per_capita < 6.413 & defects_per_capita > 0.3238 ~ 'Low-High',
-    (births_per_capita > 6.413 & births_per_capita < 12) & defects_per_capita < 0.2242 ~ 'Med-Low',
-    (births_per_capita > 6.413 & births_per_capita < 12) & (defects_per_capita > 0.2242 & defects_per_capita < 0.3238) ~ 'Med-Med',
-    (births_per_capita > 6.413 & births_per_capita < 12) & defects_per_capita > 0.3238 ~ 'Med-High',
-    births_per_capita > 12 & defects_per_capita < 0.2242 ~ 'High-Low',
-    births_per_capita > 12 & (defects_per_capita > 0.2242 & defects_per_capita < 0.3238) ~ 'High-Med',
-    births_per_capita > 12 & defects_per_capita > 0.3238 ~ 'High-High'
-  ))
-choropleth_counties$map_color <- factor(choropleth_counties$map_color, ordered = TRUE, levels = c('Low-Low', 'Med-Low', 'High-Low', 'Low-Med', 'Med-Med', 'High-Med', 'Low-High', 'Med-High', 'High-High'))
-factpal <- colorFactor(pals::stevens.bluered(n= 9), domain = rev(choropleth_counties$map_color))
-leaflet(nycounties) %>%
-  addPolygons(fillColor = ~factpal(choropleth_counties$map_color), fillOpacity = 1, weight = 1, opacity = 1, color = 'white', popup = ~nycounties$NAME) %>%
-  addProviderTiles(providers$CartoDB.DarkMatter) %>%
-  addLegend(pal = factpal, values = ~choropleth_counties$map_color, title = 'Per admission ADE Rate versus Inpatient Hospitalizations, New York State 2018')
+```{r, charge-plot, warning=FALSE}
+
+ggplot(ade_flag, aes(x = TOTCHG_X, fill = has_ade)) +
+  geom_density(alpha = 0.4) +
+  labs(x = 'Total Average of Hospital Admission, USD', y = 'Proportion of Each Population', title = 'Average Cost Per day of Inpatient Visit', fill = 'Presence of ADE') +
+  scale_x_continuous(trans = 'log10', labels = scales::dollar_format()) +
+  theme(legend.position = c(0.25,0.75))
+
+
+
 ```
-			
-	
-#### Demographics (for ADE) 
-##-Age (+ SD) 
-##-Proportion of women (+ SD) 
-##-Proportion of races (+ SD) 
-##-Proportion Hispanic (+SD) 
-##-Average charge  
-##-Average LOS 
-##-Average cost per day 
-##-Most common diagnoses 
-##Most common admitting diagnosis
+
+```{r,cost-per-day-plot}
+
+ggplot(ade_cost, aes(cost_per_day, fill = has_ade)) +
+  geom_density(alpha = 0.4) +
+  scale_x_continuous(trans = 'log10', labels = scales::dollar_format()) +
+  labs(x = 'Average Cost per Day of Hospital Admission, USD', y = 'Proportion of Each Population', title = 'Average Cost per day of Inpatient Visit', fill = 'Presence of ADE') +
+  theme(legend.position = c(0.25,0.75))
+
+
+
+
+```
+
+### Admitting Diagnosis
 
 ```{r, dx-admitting} 
-ade_flag %>% #most common ADEs
-  group_by(Code) %>%
-  summarize(n_pt = n()) %>%
-  arrange(desc(n_pt))
-
 
 ade_admitting <- ade_flag %>% #most common ADEs, admitting only
   dplyr::select(I10_DX_Admitting) %>%
@@ -313,17 +313,34 @@ ade_admitting <- ade_flag %>% #most common ADEs, admitting only
   left_join(icd, c('I10_DX_Admitting' = 'V3')) %>%
   select(V5, n_patients)
 
-ggplot(ade_admitting, aes(x = fct_reorder(V5, n_patients), y = n_patients)) +
+ggplot(ade_admitting, aes(x = fct_reorder(V5, n_patients), y = n_patients/1000)) +
   geom_col() +
+  scale_x_discrete(name = 'ICD Description', labels = function(x) str_wrap(str_replace_all(x, "foo" , " "), width = 40)) +
+  labs(y = "Cases, in thousands", title = "Top 10 Admitting Diagnoses, New York Hospitals 2018") +
   coord_flip()
 ```
-##-Most common procedures 
+#### Total Number of Diagnoses
+
+
+```{r, n-dx-plot}
+
+ggplot(ade_flag, aes(I10_NDX)) + #anomaly in the number of diagnoses
+  geom_bar() +
+    scale_y_continuous(name = 'Cases, in thousands', labels = function(y) y /1000) +
+  labs(title='Anomaly in the Number of Diagnoses', x = 'Number of ICD-10 Diagnoses')
+
+```
+
+						
+### Most Common Procedures 
 
 
 ```{r, n-procedures}
 
-ggplot(ade_flag, aes(I10_NPR)) + #anomaly in the number of procedures
-  geom_bar()
+ggplot(ade_flag, aes(I10_NPR)) 
+  geom_bar() +
+  scale_y_continuous(name = 'Cases, in thousands', labels = function(y) y /1000) +
+  labs(title='Number of ICD-10 Procedures', x = 'Number of ICD-10 Diagnoses') 
 
 ```
 
@@ -354,9 +371,99 @@ proc_counts %>%
   geom_col(aes(y = n_patients/1000)) + 
   scale_x_discrete(name = 'ICD Description', labels = function(x) str_wrap(str_replace_all(x, "foo" , " "), width = 55)) +
   theme(legend.position = c(0.75,0.25)) +
-  labs(title = 'Top 10 Most Common Procedures, 2018') +
-  scale_y_continuous(name = 'Procedure ClLaims, in thousands') +
+  labs(title = 'Top 10 Most Common Procedures') +
+  scale_y_continuous(name = 'ICD-10 Procedure Claims, in thousands') +
   coord_flip() 
+
+
+```
+
+
+
+### Top Adverse Drug Events
+
+
+
+```{r, top-10-ade, warning=FALSE}
+rm(ade_cost)
+icd <- read.csv('https://raw.githubusercontent.com/k4m1113/ICD-10-CSV/master/codes.csv', header =  FALSE) #icd10 diagnosis codes
+
+ade_counts <- ade_flag %>%
+  filter(has_ade == 1) %>%
+  group_by(Code, Description) %>%
+  summarize(n_icd = n()) %>%
+  left_join(icd, c('Code' = 'V3')) %>%
+  arrange(desc(n_icd)) %>%
+  mutate(Description = fct_relevel(Description, c('Category A1','Category A2', 'Category B2', 'Category C')))
+
+ade_counts %>%
+  head(10) %>%
+  ggplot(aes(x = fct_reorder(V5, n_icd))) +
+  geom_col(aes(y = n_icd/1000, fill = Description)) + 
+  scale_x_discrete(name = 'ICD Description', labels = function(x) str_wrap(str_replace_all(x, "foo" , " "),
+                                                 width = 40)) +
+  theme(legend.position = c(0.75,0.25)) +
+  labs(title = 'Top 10 Most Common ADE\'s, 2018') +
+  scale_y_continuous(name = 'Cases, in thousands') +
+  coord_flip() 
+
+```
+
+
+```{r, top-10-ade-cat-a, warning= FALSE}
+
+ade_counts2 <- ade_flag %>%
+  filter(has_ade == 1) %>%
+  filter(Description != 'Category C') %>%
+  group_by(Code, Description) %>%
+  summarize(n_icd = n()) %>%
+  left_join(icd, c('Code' = 'V3')) %>%
+  arrange(desc(n_icd)) %>%
+  mutate(Description = fct_relevel(Description, c('Category A1','Category A2', 'Category B2', 'Category C')))
+
+ade_counts2 %>%
+  head(10) %>%
+  ggplot(aes(x = fct_reorder(V5, n_icd))) +
+  geom_col(aes(y = n_icd/1000, fill = Description)) + 
+  scale_x_discrete(name = 'ICD Description', labels = function(x) str_wrap(str_replace_all(x, "foo" , " "),
+                                                 width = 40)) +
+  theme(legend.position = c(0.75,0.25)) +
+  labs(title = 'Most Common Category \'A\' drug reactions') +
+  scale_y_continuous(name = 'Cases, in thousands') +
+  coord_flip() 
+
+
+```
+
+```{r, ade-cat-B}
+
+ade_counts2 %>%
+  filter(Description == 'Category B2') %>%
+  head(10) %>%
+  ggplot(aes(x = fct_reorder(V5, n_icd))) +
+  geom_col(aes(y = n_icd)) + 
+  scale_x_discrete(name = 'ICD Description', labels = function(x) str_wrap(str_replace_all(x, "foo" , " "),
+                                                 width = 35)) +
+  labs(title = 'Most Common Category \'B\' drug reactions') +
+  scale_y_continuous(name = 'Cases') +
+  coord_flip() 
+
+```
+
+
+```{r, ade-cat-c}
+
+ade_counts %>%
+  filter(Description == 'Category C') %>%
+  head(3) %>%
+  ggplot(aes(x = fct_reorder(V5, n_icd))) +
+  geom_col(aes(y = n_icd/1000)) + 
+  scale_x_discrete(name = 'ICD Description', labels = function(x) str_wrap(str_replace_all(x, "foo" , " "),
+                                                 width = 35)) +
+  labs(title = 'Most Common Category \'C\' drug reactions') +
+  scale_y_continuous(name = 'Cases, in thousands') +
+  coord_flip() 
+
 
 
 ```
