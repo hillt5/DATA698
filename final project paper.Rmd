@@ -1,51 +1,53 @@
 ---
-title: "DATA 698: Final Project"
-output: html_document
-date: '2022-03-25'
+title: 'Adverse Drug Events in New York Hospitals: Prediction and Associated Costs'
+author:
+  - name: Thomas Hill
+    email: thomas.hill82@spsmail.cuny.edu
+    affiliation: CUNY School of Profesional Services
+    correspondingauthor: true
+    footnote: 1
+keywords: 
+  - Data Science
+  - Adverse Drug Event
+journal: "DATA 698"
+date: "`May 17, 2022"
+classoption: preprint, 3p, authoryear
+bibliography: mybibfile.bib
+linenumbers: false
+numbersections: true
+# Use a CSL with `citation_package = "default"`
+# csl: https://www.zotero.org/styles/elsevier-harvard
+output: 
+  rticles::elsevier_article:
+    keep_tex: true
+    citation_package: natbib
 ---
 
+
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-library(dplyr)
 library(tidyverse)
+library(dplyr)
 library(ggplot2)
 
-```
-
-```{r, load-ade-csv}
-ade_csv <- read_tsv('NY_ADE_2018_admit.csv', col_types = 'nnnnnfnnnnnnnnfffnfcccnffffffffffffffffffffffffffffffffffffffnfcnccccccccccccccccccccccccccccccccccccccnnccccccccccccccccccccccccccnnnfffnccfnffffffffffffffffffffffffffffffffffffffffffffffffffcnnffnnfffnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnncf', col_names = TRUE)
-ade_csv <- ade_csv %>% 
-  mutate(BP_DIASTOLIC_X = na_if(BP_DIASTOLIC_X, 0)) %>% #remove missing values
-  mutate(BP_SYSTOLIC_X = na_if(BP_SYSTOLIC_X, 0)) %>% #remove missin values
-  filter(AGE >= 18) %>% #adult patients
-  mutate(PSTCO = na_if(PSTCO, '')) #generate missing values for missing codes
-  
-ade_csv$BP_DIASTOLIC_X[ade_csv$BP_DIASTOLIC_X > 200] <- 70 #remove outliers
-ade_csv$BP_DIASTOLIC_X[ade_csv$BP_DIASTOLIC_X > ade_csv$BP_SYSTOLIC_X] <- mean(ade_csv$BP_DIASTOLIC_X, na.rm = TRUE) #remove values that don't make sense
-ade_csv$BP_SYSTOLIC_X[ade_csv$BP_DIASTOLIC_X > ade_csv$BP_SYSTOLIC_X] <- mean(ade_csv$BP_SYSTOLIC_X, na.rm = TRUE) #remove values that don't make sense
-
-ade_csv <- ade_csv %>%
-  select(-(PRMONTH1:PRYEAR25)) #remove extra rows
 
 ```
 
-```{r, remove-duplicates}
-#duplicate rows are present for patients with more than one ADE ICD code
-#below code will remove duplicate rows and ICD codes, instead providing number of ADE codes
 
-ade_csv <- ade_csv %>%
-  group_by(KEY) %>%
-  mutate(n_ades = n()) %>%
-  ungroup() %>%
-  select(-c(Code, Description)) %>%
-  unique()
+```{r load-csv, echo= FALSE, message = FALSE}
+
+ade_flag <- read_csv('core_paper_vars')
 
 ```
+
+
 
 
 ```{r, top-10-ade}
 
-ade_counts <- ade_csv %>%
+icd <- read.csv('https://raw.githubusercontent.com/k4m1113/ICD-10-CSV/master/codes.csv', header =  FALSE) #icd10 diagnosis codes
+
+ade_counts <- ade_flag %>%
+  filter(has_ade == 1) %>%
   group_by(Code, Description) %>%
   summarize(n_icd = n()) %>%
   left_join(icd, c('Code' = 'V3')) %>%
@@ -68,7 +70,8 @@ ade_counts %>%
 
 ```{r, top-10-ade-cat-ab}
 
-ade_counts2 <- ade_csv %>%
+ade_counts2 <- ade_flag %>%
+  filter(has_ade == 1) %>%
   filter(Description != 'Category C') %>%
   group_by(Code, Description) %>%
   summarize(n_icd = n()) %>%
@@ -87,80 +90,46 @@ ade_counts2 %>%
   scale_y_continuous(name = 'Cases, in thousands') +
   coord_flip() 
 
+ade_counts2 %>%
+  filter(Description == 'Category B2') %>%
+  head(10) %>%
+  ggplot(aes(x = fct_reorder(V5, n_icd))) +
+  geom_col(aes(y = n_icd)) + 
+  scale_x_discrete(name = 'ICD Description', labels = function(x) str_wrap(str_replace_all(x, "foo" , " "),
+                                                 width = 35)) +
+  labs(title = 'Most Common Category \'B\' drug reactions') +
+  scale_y_continuous(name = 'Cases') +
+  coord_flip() 
+
+
+
+ade_counts %>%
+  filter(Description == 'Category C') %>%
+  head(3) %>%
+  ggplot(aes(x = fct_reorder(V5, n_icd))) +
+  geom_col(aes(y = n_icd/1000)) + 
+  scale_x_discrete(name = 'ICD Description', labels = function(x) str_wrap(str_replace_all(x, "foo" , " "),
+                                                 width = 35)) +
+  labs(title = 'Most Common Category \'C\' drug reactions') +
+  scale_y_continuous(name = 'Cases, in thousands') +
+  coord_flip() 
 
 
 
 ```
-
-
-```{r, n-Diagnoses}
-
-ggplot(ade_csv, aes(I10_NDX)) + #anomaly in the number of diagnoses
-  geom_bar() +
-  geom_vline(xintercept = 25) +
-  labs(x = 'Number of ICD Diagnoses per Patient', y = 'Count', title = 'Unexpected Mode for ICD Diagnoses')
-
-```
-
-```{r, load-other-dfs}
-
-
-icd <- read.csv('https://raw.githubusercontent.com/k4m1113/ICD-10-CSV/master/codes.csv', header =  FALSE) #icd10 diagnosis codes
-
-#i10_procedure <- read.csv("i10_procedure.csv", stringsAsFactors = TRUE) #icd 10 procedure codes
-
-charge_codes <- read.csv('revcodes.csv')
-
-#NY_FIPS <- read.csv('NY_Municipalities_and_County_FIPS_codes.csv')
-#NY_FIPS$County.FIPS[NY_FIPS$County.Name == 'St Lawrence'] <- 36089
-#NY_FIPS$County.FIPS <- as.factor(NY_FIPS$County.FIPS)
-
-
-```
-
-```{r, icd-dx-cats}
-
-
-icd <- icd %>% #recoded icd csv with icd dx categories
-  mutate(icd_cat = case_when(substr(V1,1,1) == "A" | substr(V1,1,1) == "B" ~ 'Certain infections and parasitic diseases',
-                             substr(V1,1,1) == "C" ~ 'Neoplasms',
-                             substr(V1,1,1) == "D" ~ 'Diseases of the blood and blood-forming organ',
-                              substr(V1,1,1) == "E" ~ 'Endocrine, nutritional and metabolic diseases',
-                              substr(V1,1,1) == "F" ~ 'Mental, Behavioral and Neurodevelopmental disorders',
-                              substr(V1,1,1) == "G" ~ 'Diseases of the nervous system',
-                              substr(V1,1,1) == "H" & as.numeric(substr(V1, 2,2)) <=5 ~ 'Diseases of the eye and adnexa',
-                              substr(V1,1,1) == "H" & as.numeric(substr(V1, 2,2)) >5 ~ '	Diseases of the ear and mastoid process',
-                              substr(V1,1,1) == "I" ~ 'Diseases of the circulatory system',
-                              substr(V1,1,1) == "J" ~ 'Diseases of the respiratory system',
-                              substr(V1,1,1) == "K" ~ 'Diseases of the digestive system',
-                              substr(V1,1,1) == "L" ~ 'Diseases of the skin and subcutaneous tissue',
-                              substr(V1,1,1) == "M" ~ 'Diseases of the musculoskeletal system and connective tissue',
-                              substr(V1,1,1) == "N" ~ 'Diseases of the genitourinary system',
-                              substr(V1,1,1) == "O" ~ 'Pregnancy, childbirth, and puerperium',
-                              substr(V1,1,1) == "P" ~ 'Certain conditions originating in the perinatal period',
-                              substr(V1,1,1) == "Q" ~ 'Congenital malformations, deformations and chromosomal abnormalities',
-                              substr(V1,1,1) == "R" ~ 'Symptoms, signs, and abnormal clinical laboratory findings, not elsewhere classified',
-                              substr(V1,1,1) == "S" | substr(V1,1,1) == "T" ~ 'Injury, poisoning, and certain other consequences of external causes',
-                              substr(V1,1,1) == "V" | substr(V1,1,1) == "W" | substr(V1,1,1) == "X" | substr(V1,1,1) == "Y" ~ 'External causes of morbidity',
-                              substr(V1,1,1) == "Z" ~ 'Factors influencing health status and contact with health services'
-                             )
-         )
-
-```
-
 
 ```{r, women}
 
 ###-Proportion of women (+ SD) 
-ade_csv %>%
+ade_flag %>%
 	summarize(avg_female = mean((FEMALE == 1), na.rm = TRUE))
 
-ade_csv %>%
+ade_flag %>%
 	summarize(sd_female = sd(as.numeric(FEMALE == 1), na.rm = TRUE))
 ```
 ```{r, races}
 ##-Proportion of races 
-ade_csv %>%
+ade_flag %>%
 	mutate(RACE = recode_factor(RACE, `1`= 'White',
 															`2` = 'Black',
 															`3` = 'Hispanic',
@@ -169,30 +138,40 @@ ade_csv %>%
 															`6` = 'Other/Missing',
 															`NA` = 'Other/Missing')) %>%
 	group_by(RACE) %>%
-	summarize(PCT_RACE = 100*round(n()/nrow(ade_csv),3))
+	summarize(PCT_RACE = 100*round(n()/nrow(ade_flag),3))
 ```
 
 ```{r, hispanic}
 			
 ##-Proportion Hispanic 
 
-ade_csv %>%
+ade_flag %>%
   mutate(HISPANIC = na_if(HISPANIC, '')) %>%
 	mutate(HISPANIC = recode_factor(HISPANIC, `0`= 'Not Hispanic',
 															`1` = 'Hispanic, White',
 															`2` = 'Hispanic, Black',
 															`3` = 'Hispanic, Other Race')) %>%
 	group_by(HISPANIC) %>%
-	summarize(PCT_HISPANIC = 100*round(n()/nrow(ade_csv),3))
+	summarize(PCT_HISPANIC = 100*round(n()/nrow(ade_flag),3))
+  
+ade_flag %>%
+  filter(has_ade == 1) %>%
+  mutate(HISPANIC = na_if(HISPANIC, '')) %>%
+	mutate(HISPANIC = recode_factor(HISPANIC, `0`= 'Not Hispanic',
+															`1` = 'Hispanic, White',
+															`2` = 'Hispanic, Black',
+															`3` = 'Hispanic, Other Race')) %>%
+	group_by(HISPANIC) %>%
+	summarize(PCT_HISPANIC = 100*round(n()/nrow(ade_flag),3))
   
 
 ```
 ```{r, av-charge}
 ##-Average charge  
-ade_csv %>%
+ade_flag %>%
 	summarize(avg_charge = mean(TOTCHG_X, na.rm = TRUE))
 
-ggplot(ade_csv, aes(x = TOTCHG_X)) +
+ggplot(ade_flag, aes(x = TOTCHG_X)) +
   geom_histogram() +
   scale_x_continuous(trans = 'log10', labels = scales::dollar_format()) +
   labs(x = 'Total Charges per Visit, log scale', y = 'Count', title = 'Distribution of Charges, Inpatient Stays')
@@ -203,54 +182,54 @@ ggplot(ade_csv, aes(x = TOTCHG_X)) +
 ```{r, ed-admits}
 ##-Proportion of ED admissions 
 
-ade_csv %>%
+ade_flag %>%
   summarize(PCT_ED = mean(as.numeric(HCUP_ED != 0)))
 	          
-ade_csv %>%
+ade_flag %>%
 	summarize(SD_ED = sd(as.numeric(HCUP_ED != 0)))
 
 ```
 ```{r, los}
 ##-Average LOS 
 
-ade_csv %>%
+ade_flag %>%
 	summarize(AVG_LOS = mean(LOS_X, na.rm = TRUE))
-ade_csv %>%
+ade_flag %>%
   summarize(SD_LOS = sd(LOS_X, na.rm = TRUE))
 
 
-ggplot(ade_csv, aes(x = LOS_X)) +
+ggplot(ade_flag, aes(x = LOS_X)) +
   geom_histogram() +
   scale_x_continuous(trans = 'log10') +
   labs(x = 'Total Length of Stay, log scale', y = 'Count', title = 'Length of Inpatient Stay')
 
-summary(ade_csv$LOS_X)  
-ade_csv %>%
+summary(ade_flag$LOS_X)  
+ade_flag %>%
   ggplot(aes(x = LOS_X, fill = DIED == 0)) +
   geom_histogram() +
   scale_x_continuous(trans = 'log10')
 
-ade_csv %>%
+ade_flag %>%
   filter(LOS_X <= 10) %>%
   ggplot(aes(x = LOS_X, fill = DIED == 0)) +
   geom_histogram() +
   scale_x_discrete()
-hist(ade_csv$LOS_X[ade_csv$LOS_X < 10])
+hist(ade_flag$LOS_X[ade_flag$LOS_X < 10])
 ```	          
 ```{r, died}	          	
 ##-Proportion who died 
 
-ade_csv %>%
+ade_flag %>%
 	summarize(PCT_DIED = mean(DIED, na.rm = TRUE))
 
-ade_csv %>%
+ade_flag %>%
   summarize(sd_died = sd(DIED, na.rm = TRUE))
 
 	          
 ```
 ```{r, cost-per-day}      
 ##-Average cost per day 
-ade_cost <- ade_csv 
+ade_cost <- ade_flag 
 ade_cost$LOS_X[ade_cost$LOS_X == 0] <- 1
 ade_cost <- ade_cost %>%
   filter(!is.na(LOS_X), !is.na(TOTCHG_X)) %>%
@@ -319,13 +298,13 @@ leaflet(nycounties) %>%
 ##Most common admitting diagnosis
 
 ```{r, dx-admitting} 
-ade_csv %>% #most common ADEs
+ade_flag %>% #most common ADEs
   group_by(Code) %>%
   summarize(n_pt = n()) %>%
   arrange(desc(n_pt))
 
 
-ade_admitting <- ade_csv %>% #most common ADEs, admitting only
+ade_admitting <- ade_flag %>% #most common ADEs, admitting only
   dplyr::select(I10_DX_Admitting) %>%
   group_by(I10_DX_Admitting) %>%
   summarize(n_patients = n()) %>%
@@ -341,13 +320,21 @@ ggplot(ade_admitting, aes(x = fct_reorder(V5, n_patients), y = n_patients)) +
 ##-Most common procedures 
 
 
+```{r, n-procedures}
+
+ggplot(ade_flag, aes(I10_NPR)) + #anomaly in the number of procedures
+  geom_bar()
+
+```
+
+
 
 ```{r, top-10-procedures}
 
 i10_procedure <- read.csv('i10_procedure.csv')
 
 
-proc_counts <- ade_csv %>% #use similar code to determine most common procedures
+proc_counts <- ade_flag %>% #use similar code to determine most common procedures
   dplyr:: select(I10_PR1:I10_PR25) %>%
   gather(dx_num, Code, I10_PR1:I10_PR25,factor_key = TRUE ) %>%
   mutate(Code = as.factor(Code)) %>%
@@ -373,16 +360,6 @@ proc_counts %>%
 
 
 ```
-
-```{r, n-Diagnoses}
-
-ggplot(ade_csv, aes(I10_NPR)) + #anomaly in the number of diagnoses
-  geom_bar()
-
-```
-
-
-
 
 
 
