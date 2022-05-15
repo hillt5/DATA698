@@ -35,7 +35,7 @@ keywords:
   - keyword1
   - keyword2
 journal: "An awesome journal"
-date: "`r Sys.Date()`"
+date: "2022-05-15"
 classoption: preprint, 3p, authoryear
 bibliography: mybibfile.bib
 linenumbers: false
@@ -82,124 +82,31 @@ The dataset required extensive transformation to better visualize and explore ea
 
 For blood pressure and heart rate, values were available for a minority of observations. Instead of ignoring these data, each was refactored according to clinical categories, like Stage I Hypertension or bradycardia. In the case that patient location was unavailable via FIPS code, the hospital NPI was used as an approximate location by manually replacing with the local code. 
 
-```{r setup, include=FALSE}
-library(tidyverse)
-library(dplyr)
-library(ggplot2)
-library(gt)
 
 
-```
 
-```{r load-csv, echo= FALSE, message = FALSE}
 
-ade_flag <- read.csv('core_paper_vars')
-icd <- read.csv('https://raw.githubusercontent.com/k4m1113/ICD-10-CSV/master/codes.csv', header =  FALSE) #icd10 diagnosis codes
-```
 
-```{r, age, echo=FALSE, results=FALSE}
 
-###average age 
-ade_flag %>%
-	summarize(avg_age = mean((AGE), na.rm = TRUE))
 
-ade_flag %>%
-  filter(has_ade ==1) %>%
-	summarize(avg_age = mean((AGE), na.rm = TRUE))
-```
-
-```{r, women, echo=FALSE, results=FALSE}
-
-###-Proportion of women 
-ade_flag %>%
-	summarize(avg_female = mean((FEMALE == 1), na.rm = TRUE))
-
-ade_flag %>%
-  filter(has_ade ==1) %>%
-  summarize(avg_female = mean((FEMALE == 1), na.rm = TRUE))
-
-```
-
-```{r, races, echo=FALSE, results=FALSE}
-##-Proportion of races 
-ade_flag %>%
-	mutate(RACE = recode_factor(RACE, `1`= 'White',
-															`2` = 'Black',
-															`3` = 'Hispanic',
-															`4` = 'AAPI',
-															`5` = 'Native American',
-															`6` = 'Other/Missing',
-															`NA` = 'Other/Missing')) %>%
-	group_by(RACE) %>%
-	summarize(PCT_RACE = 100*round(n()/nrow(ade_flag),3))
-
-ade_flag %>%
-  filter(has_ade ==1) %>%
-	mutate(RACE = recode_factor(RACE, `1`= 'White',
-															`2` = 'Black',
-															`3` = 'Hispanic',
-															`4` = 'AAPI',
-															`5` = 'Native American',
-															`6` = 'Other/Missing',
-															`NA` = 'Other/Missing')) %>%
-	group_by(RACE) %>%
-	summarize(PCT_RACE = 100*round(n()/nrow(ade_flag[ade_flag$has_ade ==1,]),3))
-
-```
-
-```{r, hispanic, echo = FALSE,  results = FALSE}
-			
-##-Proportion Hispanic 
-
-ade_flag %>%
-  mutate(HISPANIC = na_if(HISPANIC, '')) %>%
-	mutate(HISPANIC = recode_factor(HISPANIC, `0`= 'Not Hispanic',
-															`1` = 'Hispanic, White',
-															`2` = 'Hispanic, Black',
-															`3` = 'Hispanic, Other Race')) %>%
-	group_by(HISPANIC) %>%
-	summarize(PCT_HISPANIC = 100*round(n()/nrow(ade_flag),3))
-  
-ade_flag %>%
-  filter(has_ade == 1) %>%
-  mutate(HISPANIC = na_if(HISPANIC, '')) %>%
-	mutate(HISPANIC = recode_factor(HISPANIC, `0`= 'Not Hispanic',
-															`1` = 'Hispanic, White',
-															`2` = 'Hispanic, Black',
-															`3` = 'Hispanic, Other Race')) %>%
-	group_by(HISPANIC) %>%
-	summarize(PCT_HISPANIC = 100*round(n()/nrow(ade_flag[ade_flag$has_ade ==1,]),3))
-  
 
 
 ```
+## Warning in recode.numeric(.x, !!!values, .default = .default, .missing
+## = .missing): NAs introduced by coercion
 
-```{r, ed-admits, echo= F, results = F}
-##-Proportion of ED admissions 
-
-ade_flag %>%
-  summarize(PCT_ED = mean(as.numeric(HCUP_ED != 0)))
-	          
-ade_flag %>%
-  filter(has_ade ==1 ) %>%
-	summarize(SD_ED = sd(as.numeric(HCUP_ED != 0)))
-
+## Warning in recode.numeric(.x, !!!values, .default = .default, .missing
+## = .missing): NAs introduced by coercion
 ```
 
-```{r, died, echo = F, results = F}
-##-Proportion who died 
-
-ade_flag %>%
-	summarize(PCT_DIED = mean(DIED, na.rm = TRUE))
 
 
-ade_flag %>%
-  filter(has_ade ==1) %>%
-	summarize(PCT_DIED = mean(DIED, na.rm = TRUE))
-	          
-```
 
-```{r, los, ehco = F, results = F}
+
+
+
+
+```r
 ##-Average LOS 
 
 
@@ -219,94 +126,37 @@ ade_cost %>%
 ade_cost %>%
   filter(has_ade ==1) %>%
 summarize(med_los = median(LOS_X, na.rm = TRUE))
-
-
-
-
 ```
 
-```{r ndx, echo = FALSE, results = FALSE}
-
-#average number of diagnoses
-ade_flag %>%
-	summarize(avg_ndx = mean(I10_NDX, na.rm = TRUE))
-
-ade_flag %>%
-  filter(has_ade ==1) %>%
-	summarize(avg_ndx = mean(I10_NDX, na.rm = TRUE))
 
 
 
 
 
 ```
-
-```{r npr, echo = FALSE, results = FALSE}
-
-#average number of procedures per admission
-
-
-ade_flag %>%
-	summarize(avg_npr= mean(I10_NPR, na.rm = TRUE))
-
-ade_flag %>%
-  filter(has_ade ==1) %>%
-	summarize(avg_pr = mean(I10_NPR, na.rm = TRUE))
-
-
-
-
+##   avg_charge
+## 1   56839.97
 ```
 
-```{r, av-charge, echo = F, result = F}
-##-Average charge  
-ade_flag %>%
-	summarize(avg_charge = mean(TOTCHG_X, na.rm = TRUE))
-
-ade_flag %>%
-  filter(has_ade ==1) %>%
-	summarize(avg_charge = mean(TOTCHG_X, na.rm = TRUE))
-
-ade_flag %>%
-	summarize(avg_charge = median(TOTCHG_X, na.rm = TRUE))
-
-ade_flag %>%
-  filter(has_ade ==1) %>%
-	summarize(avg_charge = median(TOTCHG_X, na.rm = TRUE))
-
-
-
-
+```
+##   avg_charge
+## 1     104979
 ```
 
-```{r, cost-per-day, echo = FALSE, results = FALSE}
-##-Average cost per day 
-ade_cost <- ade_cost %>%
-  filter(!is.na(LOS_X), !is.na(TOTCHG_X)) %>%
-		mutate(cost_per_day = round(TOTCHG_X/LOS_X, 2))
-
-ade_cost %>%
-    summarize(avg_cost_per_day = round(mean(cost_per_day, na.rm = TRUE),2))
-
-ade_cost %>%
-  filter(has_ade ==1) %>%
-  summarize(avg_cost_per_day = round(mean(cost_per_day, na.rm = TRUE),2))
-
-
-ade_cost %>%
-    summarize(med_cost_per_day = round(median(cost_per_day, na.rm = TRUE),2))
-
-ade_cost %>%
-  filter(has_ade ==1) %>%
-  summarize(med_cost_per_day = round(median(cost_per_day, na.rm = TRUE),2))
-
-
-
-
+```
+##   avg_charge
+## 1   32149.41
 ```
 
-```{r, descriptive-stats-table}
+```
+##   avg_charge
+## 1   51858.46
+```
 
+
+
+
+```r
 stats_table <- read.csv('descriptive_statistics.csv')
 colnames(stats_table) <- c('Characteristics', 'Total Population', 'Target Population')
 
@@ -317,41 +167,74 @@ stats_table %>%
 replace(is.na(.), ' ') %>%
    gt() %>%
   tab_header("2018 New York Hospital Admissions, Baseline Characteristics")
-
 ```
 
-```{r, charge-plot, warning=FALSE}
+\captionsetup[table]{labelformat=empty,skip=1pt}
+\begin{longtable}{lll}
+\caption*{
+{\large 2018 New York Hospital Admissions, Baseline Characteristics}
+} \\ 
+\toprule
+Characteristics & Total Population & Target Population \\ 
+\midrule
+n & 2,018,259 & 42,829 \\ 
+Age (years) & 58.3 & 62.2 \\ 
+Female (\%) & 56.2 & 48.9 \\ 
+Race (\%) &   &   \\ 
+     White & 54.6 & 59.7 \\ 
+     Black & 17.1 & 13 \\ 
+     Hispanic & 13.8 & 13.1 \\ 
+     AAPI & 4.6 & 4.1 \\ 
+     Native American & 0.2 & 0.7 \\ 
+     Other/Missing & 9.7 & 9.7 \\ 
+Hispanic (\%) &   &   \\ 
+     Not Hispanic & 81.6 & 83 \\ 
+     Hispanic, White & 3.2 & 2.8 \\ 
+     Hispanic, Black & 0.7 & 0.6 \\ 
+     Hispanic, Other Race & 9.8 & 9.8 \\ 
+     Missing & 4.6 & 3.9 \\ 
+ED Admission (\%) & 67 & 43.8 \\ 
+Died (\%) & 2.4 & 4.8 \\ 
+Length of Stay (days) & 5.7 & 9.2 \\ 
+Median Length of Stay (days) & 3 & 6 \\ 
+Number of Diagnoses & 12.1 & 18 \\ 
+Number of Procedures & 2.1 & 2.9 \\ 
+Charge (\$1K) & 56.8 & 105 \\ 
+Median Charge ( \$1K) & 32.1 & 58.9 \\ 
+Charge per Day (\$1K) & 13.4 & 12.1 \\ 
+Median Charge per Day (\$1K) & 9.4 & 9.9 \\ 
+\bottomrule
+\end{longtable}
 
+
+```r
 ggplot(ade_flag, aes(x = TOTCHG_X, fill = has_ade)) +
   geom_density(alpha = 0.4) +
   labs(x = 'Total Average of Hospital Admission, USD', y = 'Proportion of Each Population', title = 'Average Cost Per Inpatient Visit', fill = 'Presence of ADE') +
   scale_x_continuous(trans = 'log10', labels = scales::dollar_format()) +
   theme(legend.position = c(0.25,0.75))
-
-
-
 ```
 
-```{r,cost-per-day-plot}
+![](final-project-paper_files/figure-latex/charge-plot-1.pdf)<!-- --> 
 
+
+```r
 ggplot(ade_cost, aes(cost_per_day, fill = has_ade)) +
   geom_density(alpha = 0.4) +
   scale_x_continuous(trans = 'log10', labels = scales::dollar_format()) +
   labs(x = 'Average Cost per Day of Hospital Admission, USD', y = 'Proportion of Each Population', title = 'Average Cost per day of Inpatient Visit', fill = 'Presence of ADE') +
   theme(legend.position = c(0.25,0.75))
-
-
-
-
 ```
+
+![](final-project-paper_files/figure-latex/cost-per-day-plot-1.pdf)<!-- --> 
 
 ## Results
 
 
 ### Admitting Diagnosis
 
-```{r, dx-admitting}
 
+```r
 ade_admitting <- ade_flag %>% #most common ADEs, admitting only
   dplyr::select(I10_DX_Admitting) %>%
   group_by(I10_DX_Admitting) %>%
@@ -369,33 +252,37 @@ ggplot(ade_admitting, aes(x = fct_reorder(V5, n_patients), y = n_patients/1000))
   coord_flip()
 ```
 
+![](final-project-paper_files/figure-latex/dx-admitting-1.pdf)<!-- --> 
+
 #### Total Number of Diagnoses
 
-```{r, n-dx-plot}
 
+```r
 ggplot(ade_flag, aes(I10_NDX)) + #anomaly in the number of diagnoses
   geom_bar() +
     scale_y_continuous(name = 'Cases, in thousands', labels = function(y) y /1000) +
   labs(title='Anomaly in the Number of Diagnoses', x = 'Number of ICD-10 Diagnoses') 
-
 ```
+
+![](final-project-paper_files/figure-latex/n-dx-plot-1.pdf)<!-- --> 
 
 
 
 ### Most Common Procedures
 
-```{r, n-procedures}
 
+```r
 ggplot(ade_flag, aes(I10_NPR)) +
   geom_bar() +
   scale_y_continuous(name = 'Cases, in thousands', labels = function(y) y /1000) +
   labs(title='Number of ICD-10 Procedures', x = 'Number of ICD-10 Diagnoses') +
     theme(plot.title = element_text(hjust = 0.25))
-
 ```
 
-```{r, top-10-procedures}
+![](final-project-paper_files/figure-latex/n-procedures-1.pdf)<!-- --> 
 
+
+```r
 i10_procedure <- read.csv('i10_procedure.csv')
 
 
@@ -422,13 +309,14 @@ proc_counts %>%
   labs(title = 'Top 10 Most Common Procedures') +
   scale_y_continuous(name = 'ICD-10 Procedure Claims, in thousands') +
   coord_flip() 
-
-
 ```
+
+![](final-project-paper_files/figure-latex/top-10-procedures-1.pdf)<!-- --> 
 
 ### Top Adverse Drug Events
 
-```{r, top-10-ade, warning=FALSE}
+
+```r
 rm(ade_cost)
 
 
@@ -439,7 +327,14 @@ ade_counts <- ade_flag %>%
   left_join(icd, c('Code' = 'V3')) %>%
   arrange(desc(n_icd)) %>%
   mutate(Description = fct_relevel(Description, c('Category A1','Category A2', 'Category B2', 'Category C')))
+```
 
+```
+## `summarise()` has grouped output by 'Code'. You can override using the
+## `.groups` argument.
+```
+
+```r
 ade_counts %>%
   head(10) %>%
   ggplot(aes(x = fct_reorder(V5, n_icd))) +
@@ -450,11 +345,12 @@ ade_counts %>%
   labs(title = 'Top 10 Most Common ADE\'s, 2018') +
   scale_y_continuous(name = 'Cases, in thousands') +
   coord_flip() 
-
 ```
 
-```{r, top-10-ade-cat-a, warning= FALSE}
+![](final-project-paper_files/figure-latex/top-10-ade-1.pdf)<!-- --> 
 
+
+```r
 ade_counts2 <- ade_flag %>%
   filter(has_ade == 1) %>%
   filter(Description != 'Category C') %>%
@@ -463,7 +359,14 @@ ade_counts2 <- ade_flag %>%
   left_join(icd, c('Code' = 'V3')) %>%
   arrange(desc(n_icd)) %>%
   mutate(Description = fct_relevel(Description, c('Category A1','Category A2', 'Category B2', 'Category C')))
+```
 
+```
+## `summarise()` has grouped output by 'Code'. You can override using the
+## `.groups` argument.
+```
+
+```r
 ade_counts2 %>%
   head(10) %>%
   ggplot(aes(x = fct_reorder(V5, n_icd))) +
@@ -474,12 +377,12 @@ ade_counts2 %>%
   labs(title = 'Most Common Category \'A\' drug reactions') +
   scale_y_continuous(name = 'Cases, in thousands') +
   coord_flip() 
-
-
 ```
 
-```{r, ade-cat-B}
+![](final-project-paper_files/figure-latex/top-10-ade-cat-a-1.pdf)<!-- --> 
 
+
+```r
 ade_counts2 %>%
   filter(Description == 'Category B2') %>%
   head(10) %>%
@@ -490,11 +393,12 @@ ade_counts2 %>%
   labs(title = 'Most Common Category \'B\' drug reactions') +
   scale_y_continuous(name = 'Cases') +
   coord_flip() 
-
 ```
 
-```{r, ade-cat-c}
+![](final-project-paper_files/figure-latex/ade-cat-B-1.pdf)<!-- --> 
 
+
+```r
 ade_counts %>%
   filter(Description == 'Category C') %>%
   head(3) %>%
@@ -505,10 +409,9 @@ ade_counts %>%
   labs(title = 'Most Common Category \'C\' drug reactions') +
   scale_y_continuous(name = 'Cases, in thousands') +
   coord_flip() 
-
-
-
 ```
+
+![](final-project-paper_files/figure-latex/ade-cat-c-1.pdf)<!-- --> 
 
 ### Target Prediction 
 
@@ -517,8 +420,8 @@ ade_counts %>%
 #### Model Performance 
 
 
-```{r, performance}
 
+```r
 performance_df <- read.csv('models_performance.csv')
 
 performance_df <- performance_df %>%
@@ -536,6 +439,21 @@ performance_df %>%
   gt() %>%
   tab_header("Selected Model Performance for the Detection of Adverse Drug Events")
 ```
+
+\captionsetup[table]{labelformat=empty,skip=1pt}
+\begin{longtable}{lrrrrr}
+\caption*{
+{\large Selected Model Performance for the Detection of Adverse Drug Events}
+} \\ 
+\toprule
+Model & Accuracy & Precision & Recall & F1 & TPR \\ 
+\midrule
+GLM & 77.6 & 6.7 & 71.9 & 0.12 & 71.9 \\ 
+SGB & 77.2 & 7.4 & 82.4 & 0.14 & 82.4 \\ 
+Random Forest & 2.2 & 5.6 & 2.2 & 0.03 & 2.2 \\ 
+Neural Net & 67.9 & 5.6 & 85.6 & 0.11 & 85.6 \\ 
+\bottomrule
+\end{longtable}
 
 
 

@@ -4,7 +4,7 @@ authoryear]{elsarticle} %review=doublespace preprint=single 5p=2 column
 
 \usepackage[hyphens]{url}
 
-  \journal{DATA 698} % Sets Journal name
+  \journal{An awesome journal} % Sets Journal name
 
 \usepackage{lineno} % add
 
@@ -44,7 +44,7 @@ authoryear]{elsarticle} %review=doublespace preprint=single 5p=2 column
 \hypersetup{breaklinks=true,
             bookmarks=true,
             pdfauthor={},
-            pdftitle={Adverse Drug Events in New York Hospitals: Prediction and Associated Costs},
+            pdftitle={Short Paper},
             colorlinks=false,
             urlcolor=blue,
             linkcolor=magenta,
@@ -113,20 +113,37 @@ authoryear]{elsarticle} %review=doublespace preprint=single 5p=2 column
 
 \begin{frontmatter}
 
-  \title{Adverse Drug Events in New York Hospitals: Prediction and
-Associated Costs}
-    \author[CUNY School of Profesional Services]{Thomas Hill%
+  \title{Short Paper}
+    \author[Some Institute of Technology]{Alice Anonymous%
   \corref{cor1}%
   \fnref{1}}
-   \ead{thomas.hill82@spsmail.cuny.edu} 
-      \cortext[cor1]{Corresponding author}
+   \ead{alice@example.com} 
+    \author[Another University]{Bob Security}
+   \ead{bob@example.com} 
+    \author[Another University]{Cat Memes%
+  %
+  \fnref{2}}
+   \ead{cat@example.com} 
+    \author[Some Institute of Technology]{Derek Zoolander%
+  %
+  \fnref{2}}
+   \ead{derek@example.com} 
+      \affiliation[Some Institute of Technology]{Department, Street,
+City, State, Zip}
+    \affiliation[Another University]{Department, Street, City, State,
+Zip}
+    \cortext[cor1]{Corresponding author}
+    \fntext[1]{This is the first author footnote.}
+    \fntext[2]{Another author footnote.}
   
   \begin{abstract}
-  
+  This is the abstract.
+
+  It consists of two paragraphs.
   \end{abstract}
     \begin{keyword}
-    Data Science \sep 
-    Adverse Drug Event
+    keyword1 \sep 
+    keyword2
   \end{keyword}
   
  \end{frontmatter}
@@ -322,21 +339,21 @@ replacing with the local code.
 Characteristics & Total Population & Target Population \\ 
 \midrule
 n & 2,018,259 & 42,829 \\ 
-Age (years & 58.3 & 62.2 \\ 
+Age (years) & 58.3 & 62.2 \\ 
 Female (\%) & 56.2 & 48.9 \\ 
 Race (\%) &   &   \\ 
-White & 54.6 & 59.7 \\ 
-Black & 17.1 & 13 \\ 
-Hispanic & 13.8 & 13.1 \\ 
-AAPI & 4.6 & 4.1 \\ 
-Native American & 0.2 & 0.7 \\ 
-Other/Missing & 9.7 & 9.7 \\ 
+     White & 54.6 & 59.7 \\ 
+     Black & 17.1 & 13 \\ 
+     Hispanic & 13.8 & 13.1 \\ 
+     AAPI & 4.6 & 4.1 \\ 
+     Native American & 0.2 & 0.7 \\ 
+     Other/Missing & 9.7 & 9.7 \\ 
 Hispanic (\%) &   &   \\ 
-Not Hispanic & 81.6 & 83 \\ 
-Hispanic, White & 3.2 & 2.8 \\ 
-Hispanic, Black & 0.7 & 0.6 \\ 
-Hispanic, Other Race & 9.8 & 9.8 \\ 
-Missing & 4.6 & 3.9 \\ 
+     Not Hispanic & 81.6 & 83 \\ 
+     Hispanic, White & 3.2 & 2.8 \\ 
+     Hispanic, Black & 0.7 & 0.6 \\ 
+     Hispanic, Other Race & 9.8 & 9.8 \\ 
+     Missing & 4.6 & 3.9 \\ 
 ED Admission (\%) & 67 & 43.8 \\ 
 Died (\%) & 2.4 & 4.8 \\ 
 Length of Stay (days) & 5.7 & 9.2 \\ 
@@ -354,7 +371,7 @@ Median Charge per Day (\$1K) & 9.4 & 9.9 \\
 \begin{Highlighting}[]
 \FunctionTok{ggplot}\NormalTok{(ade\_flag, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ TOTCHG\_X, }\AttributeTok{fill =}\NormalTok{ has\_ade)) }\SpecialCharTok{+}
   \FunctionTok{geom\_density}\NormalTok{(}\AttributeTok{alpha =} \FloatTok{0.4}\NormalTok{) }\SpecialCharTok{+}
-  \FunctionTok{labs}\NormalTok{(}\AttributeTok{x =} \StringTok{\textquotesingle{}Total Average of Hospital Admission, USD\textquotesingle{}}\NormalTok{, }\AttributeTok{y =} \StringTok{\textquotesingle{}Proportion of Each Population\textquotesingle{}}\NormalTok{, }\AttributeTok{title =} \StringTok{\textquotesingle{}Average Cost Per day of Inpatient Visit\textquotesingle{}}\NormalTok{, }\AttributeTok{fill =} \StringTok{\textquotesingle{}Presence of ADE\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}\AttributeTok{x =} \StringTok{\textquotesingle{}Total Average of Hospital Admission, USD\textquotesingle{}}\NormalTok{, }\AttributeTok{y =} \StringTok{\textquotesingle{}Proportion of Each Population\textquotesingle{}}\NormalTok{, }\AttributeTok{title =} \StringTok{\textquotesingle{}Average Cost Per Inpatient Visit\textquotesingle{}}\NormalTok{, }\AttributeTok{fill =} \StringTok{\textquotesingle{}Presence of ADE\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
   \FunctionTok{scale\_x\_continuous}\NormalTok{(}\AttributeTok{trans =} \StringTok{\textquotesingle{}log10\textquotesingle{}}\NormalTok{, }\AttributeTok{labels =}\NormalTok{ scales}\SpecialCharTok{::}\FunctionTok{dollar\_format}\NormalTok{()) }\SpecialCharTok{+}
   \FunctionTok{theme}\NormalTok{(}\AttributeTok{legend.position =} \FunctionTok{c}\NormalTok{(}\FloatTok{0.25}\NormalTok{,}\FloatTok{0.75}\NormalTok{))}
 \end{Highlighting}
@@ -395,6 +412,7 @@ Median Charge per Day (\$1K) & 9.4 & 9.9 \\
   \FunctionTok{geom\_col}\NormalTok{() }\SpecialCharTok{+}
   \FunctionTok{scale\_x\_discrete}\NormalTok{(}\AttributeTok{name =} \StringTok{\textquotesingle{}ICD Description\textquotesingle{}}\NormalTok{, }\AttributeTok{labels =} \ControlFlowTok{function}\NormalTok{(x) }\FunctionTok{str\_wrap}\NormalTok{(}\FunctionTok{str\_replace\_all}\NormalTok{(x, }\StringTok{"foo"}\NormalTok{ , }\StringTok{" "}\NormalTok{), }\AttributeTok{width =} \DecValTok{40}\NormalTok{)) }\SpecialCharTok{+}
   \FunctionTok{labs}\NormalTok{(}\AttributeTok{y =} \StringTok{"Cases, in thousands"}\NormalTok{, }\AttributeTok{title =} \StringTok{"Top 10 Admitting Diagnoses, New York Hospitals 2018"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{theme}\NormalTok{(}\AttributeTok{plot.title =} \FunctionTok{element\_text}\NormalTok{(}\AttributeTok{hjust =} \FloatTok{0.25}\NormalTok{))}\SpecialCharTok{+}
   \FunctionTok{coord\_flip}\NormalTok{()}
 \end{Highlighting}
 \end{Shaded}
@@ -409,7 +427,7 @@ Median Charge per Day (\$1K) & 9.4 & 9.9 \\
 \FunctionTok{ggplot}\NormalTok{(ade\_flag, }\FunctionTok{aes}\NormalTok{(I10\_NDX)) }\SpecialCharTok{+} \CommentTok{\#anomaly in the number of diagnoses}
   \FunctionTok{geom\_bar}\NormalTok{() }\SpecialCharTok{+}
     \FunctionTok{scale\_y\_continuous}\NormalTok{(}\AttributeTok{name =} \StringTok{\textquotesingle{}Cases, in thousands\textquotesingle{}}\NormalTok{, }\AttributeTok{labels =} \ControlFlowTok{function}\NormalTok{(y) y }\SpecialCharTok{/}\DecValTok{1000}\NormalTok{) }\SpecialCharTok{+}
-  \FunctionTok{labs}\NormalTok{(}\AttributeTok{title=}\StringTok{\textquotesingle{}Anomaly in the Number of Diagnoses\textquotesingle{}}\NormalTok{, }\AttributeTok{x =} \StringTok{\textquotesingle{}Number of ICD{-}10 Diagnoses\textquotesingle{}}\NormalTok{)}
+  \FunctionTok{labs}\NormalTok{(}\AttributeTok{title=}\StringTok{\textquotesingle{}Anomaly in the Number of Diagnoses\textquotesingle{}}\NormalTok{, }\AttributeTok{x =} \StringTok{\textquotesingle{}Number of ICD{-}10 Diagnoses\textquotesingle{}}\NormalTok{) }
 \end{Highlighting}
 \end{Shaded}
 
@@ -423,7 +441,8 @@ Median Charge per Day (\$1K) & 9.4 & 9.9 \\
 \FunctionTok{ggplot}\NormalTok{(ade\_flag, }\FunctionTok{aes}\NormalTok{(I10\_NPR)) }\SpecialCharTok{+}
   \FunctionTok{geom\_bar}\NormalTok{() }\SpecialCharTok{+}
   \FunctionTok{scale\_y\_continuous}\NormalTok{(}\AttributeTok{name =} \StringTok{\textquotesingle{}Cases, in thousands\textquotesingle{}}\NormalTok{, }\AttributeTok{labels =} \ControlFlowTok{function}\NormalTok{(y) y }\SpecialCharTok{/}\DecValTok{1000}\NormalTok{) }\SpecialCharTok{+}
-  \FunctionTok{labs}\NormalTok{(}\AttributeTok{title=}\StringTok{\textquotesingle{}Number of ICD{-}10 Procedures\textquotesingle{}}\NormalTok{, }\AttributeTok{x =} \StringTok{\textquotesingle{}Number of ICD{-}10 Diagnoses\textquotesingle{}}\NormalTok{) }
+  \FunctionTok{labs}\NormalTok{(}\AttributeTok{title=}\StringTok{\textquotesingle{}Number of ICD{-}10 Procedures\textquotesingle{}}\NormalTok{, }\AttributeTok{x =} \StringTok{\textquotesingle{}Number of ICD{-}10 Diagnoses\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
+    \FunctionTok{theme}\NormalTok{(}\AttributeTok{plot.title =} \FunctionTok{element\_text}\NormalTok{(}\AttributeTok{hjust =} \FloatTok{0.25}\NormalTok{))}
 \end{Highlighting}
 \end{Shaded}
 
@@ -453,7 +472,7 @@ Median Charge per Day (\$1K) & 9.4 & 9.9 \\
   \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =} \FunctionTok{fct\_reorder}\NormalTok{(ICD.}\FloatTok{10.}\NormalTok{PCS.CODE.DESCRIPTION, n\_patients))) }\SpecialCharTok{+}
   \FunctionTok{geom\_col}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{y =}\NormalTok{ n\_patients}\SpecialCharTok{/}\DecValTok{1000}\NormalTok{)) }\SpecialCharTok{+} 
   \FunctionTok{scale\_x\_discrete}\NormalTok{(}\AttributeTok{name =} \StringTok{\textquotesingle{}ICD Description\textquotesingle{}}\NormalTok{, }\AttributeTok{labels =} \ControlFlowTok{function}\NormalTok{(x) }\FunctionTok{str\_wrap}\NormalTok{(}\FunctionTok{str\_replace\_all}\NormalTok{(x, }\StringTok{"foo"}\NormalTok{ , }\StringTok{" "}\NormalTok{), }\AttributeTok{width =} \DecValTok{55}\NormalTok{)) }\SpecialCharTok{+}
-  \FunctionTok{theme}\NormalTok{(}\AttributeTok{legend.position =} \FunctionTok{c}\NormalTok{(}\FloatTok{0.75}\NormalTok{,}\FloatTok{0.25}\NormalTok{)) }\SpecialCharTok{+}
+  \FunctionTok{theme}\NormalTok{(}\AttributeTok{legend.position =} \FunctionTok{c}\NormalTok{(}\FloatTok{0.75}\NormalTok{,}\FloatTok{0.25}\NormalTok{), }\AttributeTok{plot.title =} \FunctionTok{element\_text}\NormalTok{(}\AttributeTok{hjust =} \FloatTok{0.25}\NormalTok{)) }\SpecialCharTok{+}
   \FunctionTok{labs}\NormalTok{(}\AttributeTok{title =} \StringTok{\textquotesingle{}Top 10 Most Common Procedures\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
   \FunctionTok{scale\_y\_continuous}\NormalTok{(}\AttributeTok{name =} \StringTok{\textquotesingle{}ICD{-}10 Procedure Claims, in thousands\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
   \FunctionTok{coord\_flip}\NormalTok{() }
@@ -493,7 +512,7 @@ Median Charge per Day (\$1K) & 9.4 & 9.9 \\
   \FunctionTok{geom\_col}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{y =}\NormalTok{ n\_icd}\SpecialCharTok{/}\DecValTok{1000}\NormalTok{, }\AttributeTok{fill =}\NormalTok{ Description)) }\SpecialCharTok{+} 
   \FunctionTok{scale\_x\_discrete}\NormalTok{(}\AttributeTok{name =} \StringTok{\textquotesingle{}ICD Description\textquotesingle{}}\NormalTok{, }\AttributeTok{labels =} \ControlFlowTok{function}\NormalTok{(x) }\FunctionTok{str\_wrap}\NormalTok{(}\FunctionTok{str\_replace\_all}\NormalTok{(x, }\StringTok{"foo"}\NormalTok{ , }\StringTok{" "}\NormalTok{),}
                                                  \AttributeTok{width =} \DecValTok{40}\NormalTok{)) }\SpecialCharTok{+}
-  \FunctionTok{theme}\NormalTok{(}\AttributeTok{legend.position =} \FunctionTok{c}\NormalTok{(}\FloatTok{0.75}\NormalTok{,}\FloatTok{0.25}\NormalTok{)) }\SpecialCharTok{+}
+  \FunctionTok{theme}\NormalTok{(}\AttributeTok{legend.position =} \FunctionTok{c}\NormalTok{(}\FloatTok{0.75}\NormalTok{,}\FloatTok{0.25}\NormalTok{), }\AttributeTok{plot.title =} \FunctionTok{element\_text}\NormalTok{(}\AttributeTok{hjust =} \FloatTok{0.25}\NormalTok{)) }\SpecialCharTok{+}
   \FunctionTok{labs}\NormalTok{(}\AttributeTok{title =} \StringTok{\textquotesingle{}Top 10 Most Common ADE}\SpecialCharTok{\textbackslash{}\textquotesingle{}}\StringTok{s, 2018\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
   \FunctionTok{scale\_y\_continuous}\NormalTok{(}\AttributeTok{name =} \StringTok{\textquotesingle{}Cases, in thousands\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
   \FunctionTok{coord\_flip}\NormalTok{() }
@@ -528,7 +547,7 @@ Median Charge per Day (\$1K) & 9.4 & 9.9 \\
   \FunctionTok{geom\_col}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{y =}\NormalTok{ n\_icd}\SpecialCharTok{/}\DecValTok{1000}\NormalTok{, }\AttributeTok{fill =}\NormalTok{ Description)) }\SpecialCharTok{+} 
   \FunctionTok{scale\_x\_discrete}\NormalTok{(}\AttributeTok{name =} \StringTok{\textquotesingle{}ICD Description\textquotesingle{}}\NormalTok{, }\AttributeTok{labels =} \ControlFlowTok{function}\NormalTok{(x) }\FunctionTok{str\_wrap}\NormalTok{(}\FunctionTok{str\_replace\_all}\NormalTok{(x, }\StringTok{"foo"}\NormalTok{ , }\StringTok{" "}\NormalTok{),}
                                                  \AttributeTok{width =} \DecValTok{40}\NormalTok{)) }\SpecialCharTok{+}
-  \FunctionTok{theme}\NormalTok{(}\AttributeTok{legend.position =} \FunctionTok{c}\NormalTok{(}\FloatTok{0.75}\NormalTok{,}\FloatTok{0.25}\NormalTok{)) }\SpecialCharTok{+}
+  \FunctionTok{theme}\NormalTok{(}\AttributeTok{legend.position =} \FunctionTok{c}\NormalTok{(}\FloatTok{0.75}\NormalTok{,}\FloatTok{0.25}\NormalTok{), }\AttributeTok{plot.title =} \FunctionTok{element\_text}\NormalTok{(}\AttributeTok{hjust =} \FloatTok{0.25}\NormalTok{)) }\SpecialCharTok{+}
   \FunctionTok{labs}\NormalTok{(}\AttributeTok{title =} \StringTok{\textquotesingle{}Most Common Category }\SpecialCharTok{\textbackslash{}\textquotesingle{}}\StringTok{A}\SpecialCharTok{\textbackslash{}\textquotesingle{}}\StringTok{ drug reactions\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
   \FunctionTok{scale\_y\_continuous}\NormalTok{(}\AttributeTok{name =} \StringTok{\textquotesingle{}Cases, in thousands\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
   \FunctionTok{coord\_flip}\NormalTok{() }
