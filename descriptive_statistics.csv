@@ -3,18 +3,18 @@ n,2018259,42829
 Age (years),58.3,62.2
 Female (%),56.2,48.9
 Race (%),,
-White,54.6,59.7
-Black,17.1,13
-Hispanic,13.8,13.1
-AAPI,4.6,4.1
-Native American,0.2,0.7
-Other/Missing,9.7,9.7
+     White,54.6,59.7
+     Black,17.1,13
+     Hispanic,13.8,13.1
+     AAPI,4.6,4.1
+     Native American,0.2,0.7
+     Other/Missing,9.7,9.7
 Hispanic (%),,
-Not Hispanic,81.6,83
-"Hispanic, White",3.2,2.8
-"Hispanic, Black",0.7,0.6
-"Hispanic, Other Race",9.8,9.8
-Missing,4.6,3.9
+     Not Hispanic,81.6,83
+     "Hispanic, White",3.2,2.8
+     "Hispanic, Black",0.7,0.6
+     "Hispanic, Other Race",9.8,9.8
+     Missing,4.6,3.9
 ED Admission (%),67,43.8
 Died (%),2.4,4.8
 Length of Stay (days),5.7,9.2
