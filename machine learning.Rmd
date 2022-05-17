@@ -269,7 +269,7 @@ glm_pred <- predict(glm_fit, test_set %>% select(-has_ade), na.action = na.exclu
 table(test_set$has_ade, as.numeric(glm_pred) >= InformationValue::optimalCutoff(as.numeric(test_set$has_ade), as.numeric(glm_pred)))
 
 ```
-```{r, logistic-performance}
+```{r, sgb-performance}
 
 
 sgb_fit <- train(as.factor(has_ade)~., method = 'gbm', data = training_set, trControl = control, na.action = na.exclude)
@@ -286,7 +286,7 @@ glm_pred %>% View()
 
 
 
-```{r, logistic-performance}
+```{r, rf-performance}
 
 
 rf_fit <- train(as.factor(has_ade)~., method = 'rf', metric = "Accuracy", tuneLength= 10, data = training_set, trControl = control, na.action = na.exclude)
@@ -301,7 +301,7 @@ table(test_set$has_ade, as.numeric(rf_pred) >= InformationValue::optimalCutoff(a
 
 
 
-```{r, logistic-performance}
+```{r, nn-performance}
 
 nn_fit <- train(as.factor(has_ade)~., method = 'nnet', metric = "Accuracy", tuneLength= 10, data = training_set, trControl = control, na.action = na.exclude)
 
