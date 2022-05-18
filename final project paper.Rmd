@@ -1,7 +1,10 @@
 ---
-title: "Untitled"
-output: pdf_document
+title: 'DATA 698: Final Project'
+author: "Thomas Hill"
 date: '2022-05-17'
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 
@@ -45,7 +48,7 @@ For blood pressure and heart rate, values were available for a minority of obser
 
 Programming was performed in R. Specific libraries include dplyr for preprocessing and descriptive statistics, and ggplot2 for data visualization. To correct for class imbalance, the ROSE library was used to oversample from observations with an ADE.  Cross-validation and supervised learning techniques were automated using caret to predict the presence of an ADE. The machine learning models considered were logistic regression via generalized linear model (GLM), stochastic gradient boost (SGB), random forests (RF), and neural nets (NN).  
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, warning = FALSE}
 library(tidyverse)
 library(dplyr)
 library(ggplot2)
@@ -54,13 +57,13 @@ library(gt)
 
 ```
 
-```{r load-csv, echo= FALSE, message = FALSE}
+```{r load-csv, echo= FALSE, warning = FALSE, message = FALSE}
 
 ade_flag <- read.csv('core_paper_vars')
 icd <- read.csv('https://raw.githubusercontent.com/k4m1113/ICD-10-CSV/master/codes.csv', header =  FALSE) #icd10 diagnosis codes
 ```
 
-```{r, age, echo=FALSE, results=FALSE}
+```{r, age, echo=FALSE, results='hide'}
 
 ###average age 
 ade_flag %>%
@@ -71,7 +74,7 @@ ade_flag %>%
 	summarize(avg_age = mean((AGE), na.rm = TRUE))
 ```
 
-```{r, women, echo=FALSE, results=FALSE}
+```{r, women, echo=FALSE, results='hide'}
 
 ###-Proportion of women 
 ade_flag %>%
@@ -83,7 +86,7 @@ ade_flag %>%
 
 ```
 
-```{r, races, echo=FALSE, results=FALSE}
+```{r, races, echo=FALSE, results='hide', warning = FALSE}
 ##-Proportion of races 
 ade_flag %>%
 	mutate(RACE = recode_factor(RACE, `1`= 'White',
@@ -110,7 +113,7 @@ ade_flag %>%
 
 ```
 
-```{r, hispanic, echo = FALSE,  results = FALSE}
+```{r, hispanic, echo = FALSE,  results = 'hide', warning = FALSE}
 			
 ##-Proportion Hispanic 
 
@@ -137,7 +140,7 @@ ade_flag %>%
 
 ```
 
-```{r, ed-admits, echo= F, results = F}
+```{r, ed-admits, echo= F, results = 'hide'}
 ##-Proportion of ED admissions 
 
 ade_flag %>%
@@ -149,7 +152,7 @@ ade_flag %>%
 
 ```
 
-```{r, died, echo = F, results = F}
+```{r, died, echo = F, results = 'hide'}
 ##-Proportion who died 
 
 ade_flag %>%
@@ -162,7 +165,7 @@ ade_flag %>%
 	          
 ```
 
-```{r, los, ehco = F, results = F}
+```{r, los, echo = F, results = 'hide', warning = FALSE}
 ##-Average LOS 
 
 
@@ -188,7 +191,7 @@ summarize(med_los = median(LOS_X, na.rm = TRUE))
 
 ```
 
-```{r ndx, echo = FALSE, results = FALSE}
+```{r ndx, echo = FALSE, results = 'hide'}
 
 #average number of diagnoses
 ade_flag %>%
@@ -204,7 +207,7 @@ ade_flag %>%
 
 ```
 
-```{r npr, echo = FALSE, results = FALSE}
+```{r npr, echo = FALSE, results = 'hide'}
 
 #average number of procedures per admission
 
@@ -221,7 +224,7 @@ ade_flag %>%
 
 ```
 
-```{r, av-charge, echo = F, result = F}
+```{r, av-charge, echo = F, results = 'hide'}
 ##-Average charge  
 ade_flag %>%
 	summarize(avg_charge = mean(TOTCHG_X, na.rm = TRUE))
@@ -242,7 +245,7 @@ ade_flag %>%
 
 ```
 
-```{r, cost-per-day, echo = FALSE, results = FALSE}
+```{r, cost-per-day, echo = FALSE, results = 'hide', warning = FALSE}
 ##-Average cost per day 
 ade_cost <- ade_cost %>%
   filter(!is.na(LOS_X), !is.na(TOTCHG_X)) %>%
@@ -276,7 +279,7 @@ Demographic and admissions statistics are available in Table 2. Adverse drug eve
 ADE cases also have much greater hospital charges associated with admission, approximately \$105,000 versus $57,000. This pattern disappeared when considering charge per day, with the total cost almost wholly driven by their longer duration at the hospital (six versus three days).  
 
 
-```{r, descriptive-stats-table}
+```{r, descriptive-stats-table, echo = FALSE}
 
 stats_table <- read.csv('descriptive_statistics.csv')
 colnames(stats_table) <- c('Characteristics', 'Total Population', 'Target Population')
@@ -291,7 +294,7 @@ replace(is.na(.), ' ') %>%
 
 ```
 
-```{r, charge-plot, warning=FALSE}
+```{r, charge-plot, warning=FALSE, echo = FALSE, warning = FALSE}
 
 ggplot(ade_flag, aes(x = TOTCHG_X, fill = has_ade)) +
   geom_density(alpha = 0.4) +
@@ -303,7 +306,7 @@ ggplot(ade_flag, aes(x = TOTCHG_X, fill = has_ade)) +
 
 ```
 
-```{r,cost-per-day-plot}
+```{r,cost-per-day-plot, echo = FALSE, warning = FALSE}
 
 ggplot(ade_cost, aes(cost_per_day, fill = has_ade)) +
   geom_density(alpha = 0.4) +
@@ -321,7 +324,7 @@ ggplot(ade_cost, aes(cost_per_day, fill = has_ade)) +
 
 ICD-10 diagnoses were limited to 35 and procedures to 25; however, there appeared to be a local mode at 25 diagnoses. This may be attributed to a limit on claims to large insurers like Medicare. The most common admitting diagnoses coordinate well with clinical practice; many of them are admission for childbirth (encounter for supervision of other normal pregnancy, encounter for full-term uncomplicated delivery), infection (sepsis, pneumonia, fever), or one of several chronic illness exacerbations (shortness of breath, chest pain).  
 
-```{r, dx-admitting}
+```{r, dx-admitting, echo = FALSE, warning = FALSE}
 
 ade_admitting <- ade_flag %>% #most common ADEs, admitting only
   dplyr::select(I10_DX_Admitting) %>%
@@ -342,7 +345,7 @@ ggplot(ade_admitting, aes(x = fct_reorder(V5, n_patients), y = n_patients/1000))
 
 #### Total Number of Diagnoses
 
-```{r, n-dx-plot}
+```{r, n-dx-plot, echo = FALSE, warning = FALSE}
 
 ggplot(ade_flag, aes(I10_NDX)) + #anomaly in the number of diagnoses
   geom_bar() +
@@ -355,7 +358,7 @@ ggplot(ade_flag, aes(I10_NDX)) + #anomaly in the number of diagnoses
 
 #### Most Common Procedures
 
-```{r, n-procedures}
+```{r, n-procedures, echo = FALSE, warning = FALSE}
 
 ggplot(ade_flag, aes(I10_NPR)) +
   geom_bar() +
@@ -365,7 +368,7 @@ ggplot(ade_flag, aes(I10_NPR)) +
 
 ```
 
-```{r, top-10-procedures}
+```{r, top-10-procedures, echo = FALSE, warning = FALSE}
 
 i10_procedure <- read.csv('i10_procedure.csv')
 
@@ -407,7 +410,7 @@ Next, generalized skin eruption due to drugs may be a combination of a few under
 Category B is the smallest category represented in the total population, with only several dozen associated reactions. The official definition of a Category B reaction is an event caused by ‘poisoning’; however, the descriptions illustrate something else happening. The most common category B code is laxative abuse, which is an intentional overuse of laxatives potentially related to an attempt at weight loss. Category B codes detected in this study are all ICD codes starting with ‘F’, or mental/behavioral disorders. These codes may not be widely used because of their high specificity and the indirect causal relationship they may have to hospitalization. For instance, abuse of laxatives may present in the ED as a chief complaint of diarrhea, electrolyte or acid-base imbalance, or a more general mental health diagnosis. It is not until a patient is interviewed that the underlying cause is established. 
 
 
-```{r, top-10-ade, warning=FALSE}
+```{r, top-10-ade, warning=FALSE, echo = FALSE, message=FALSE}
 rm(ade_cost)
 
 
@@ -432,7 +435,7 @@ ade_counts %>%
 
 ```
 
-```{r, top-10-ade-cat-a, warning= FALSE}
+```{r, top-10-ade-cat-a, warning= FALSE, echo = FALSE, message = FALSE}
 
 ade_counts2 <- ade_flag %>%
   filter(has_ade == 1) %>%
@@ -457,7 +460,7 @@ ade_counts2 %>%
 
 ```
 
-```{r, ade-cat-B}
+```{r, ade-cat-B, echo = FALSE, warning = FALSE}
 
 ade_counts2 %>%
   filter(Description == 'Category B2') %>%
@@ -472,7 +475,7 @@ ade_counts2 %>%
 
 ```
 
-```{r, ade-cat-c}
+```{r, ade-cat-c, echo = FALSE, warning = FALSE}
 
 ade_counts %>%
   filter(Description == 'Category C') %>%
@@ -501,27 +504,25 @@ Overall performance measured by F1 and F2 scores was low. All four models had sc
 
 Looking at each specific model, SGB had the highest F-scores and precision, with logistic and neural nets having similar performance. Implementation of the RF model was flawed and suffered from across-the-board inferior performance on the test data. It is possible that this model was incompletely trained and did not reach the necessary complexity to predict the outcome. None of the metrics were over 10% for RF. 
 
-```{r, performance}
+
+
+```{r, performance df, echo = FALSE, warning = FALSE}
 
 performance_df <- read.csv('models_performance.csv')
-
 performance_df <- performance_df %>%
   mutate(Accuracy = 100*round((TP+TN)/(TP+TN+FP+FN),3)) %>%
   mutate(Precision = 100*round(TP/(TP + FP),3)) %>%
   mutate(Recall = 100*round(TP/(TP + FN),3))
-
 performance_df <- performance_df %>%
   mutate(F1 = round(2*Precision*Recall/(Precision + Recall)/100,2)) %>%
-  mutate(TPR = 100*round(TP/(TP+FN),3)) %>%
+  mutate(F2 = round(5*Precision*Recall/(4*Precision+Recall)/100,2)) %>%
   select(-TN,-TP,-FN,-FP)
-
 
 performance_df %>%
   gt() %>%
-  tab_header("Selected Model Performance for the Detection of Adverse Drug Events")
+  tab_header("Selected Model Performance for the Detection of Adverse Drug Events") 
+
 ```
-
-
  
 
 ## Conclusions and Future Directions 
